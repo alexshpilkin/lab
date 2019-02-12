@@ -9,7 +9,7 @@ parser.add_argument('--glossary', default = 'ruelectiondata.json')
 parser.add_argument('--election_num', default = 20180909, type = int)
 args = parser.parse_args()
 
-read_all_lines = lambda file_path = (urllib.request.urlopen if args.stations.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8').split('\n')
+read_all_lines = lambda file_path: (urllib.request.urlopen if args.stations.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8').split('\n')
 protocols = list(map(json.loads, read_all_lines(args.protocols_json)))
 ik_turnouts = list(map(json.loads, read_all_lines(args.ik_turnouts_json)))
 glossary = json.load(open(args.glossary))
