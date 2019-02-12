@@ -1,6 +1,7 @@
 import argparse
 import json
 import urllib.parse
+import urllib.request
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--protocols_json', default = 'https://github.com/schitaytesami/data/releases/download/20180909/2018_09_all_govs_protocols_json.txt')
