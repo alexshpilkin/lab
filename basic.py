@@ -66,18 +66,11 @@ centers = np.arange(0,100,binwidth)
 
 noise = np.zeros(np.sum(ind)) if not addNoise else np.random.rand(np.sum(ind)) - .5
 
-w = None
-if weights == 'voters': w = voters[ind]
-if weights == 'given':  w = given[ind]
-if weights == 'leader': w = leader[ind]
+w = dict(voters = voters, given = given, leader = leader)[weights][ind] if weights != 'off' else None
 h1 = np.histogram(100 * (given[ind]+noise)/voters[ind],    bins=edges, weights = w)[0]
 h2 = np.histogram(100 * (leader[ind]+noise)/received[ind], bins=edges, weights = w)[0]
 
-ylbl = 'Polling stations'
-if weights == 'voters': ylbl = 'Voters'
-if weights == 'given':  ylbl = 'Ballots given'
-if weights == 'leader': ylbl = 'Ballots for leader'
-
+ylbl = dict(voters = 'Voters', given = 'Ballots given', leader = 'Ballots for leader').get(weights, 'Polling stations')
 plt.figure(figsize=(9,6))
 plt.subplot(211)
 plt.plot(centers, h1, linewidth=1)
