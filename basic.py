@@ -94,7 +94,7 @@ plt.tight_layout()
 plt.savefig('basic1.png')
 plt.close()
 
-# 2D histograms for all years
+# scatterplot
 binwidth = 0.5
 minSize = 0
 edges = np.arange(-binwidth/2, 100+binwidth/2, binwidth)
@@ -106,7 +106,7 @@ plt.imshow(h.T, vmin=0, vmax=50000, origin='lower', extent=[0,100,0,100], cmap='
 plt.xticks([])
 plt.yticks([])
 plt.axis('off')
-plt.text(10,85,y, color='w')
+plt.text(10,85,year, color='w')
 plt.tight_layout()
 plt.savefig('basic2.png')
 plt.close()
