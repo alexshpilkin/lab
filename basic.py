@@ -43,7 +43,7 @@ regions = table['region']
 tiks = table['tik']
 uiks = table['uik']
 
-# Histograms for one particular year
+# histogram projections
 binwidth = 0.1         # Bin width (in percentage points)
 addNoise = False       # If add U(-0.5,0.5) noise to the nominators (to remove division artifacts)
 weights  = 'voters'    # Weights: can be 'off'     (counts polling stations), 
@@ -94,7 +94,7 @@ plt.tight_layout()
 plt.savefig('basic1.png')
 plt.close()
 
-# scatterplot
+# histogram 2d
 binwidth = 0.5
 minSize = 0
 edges = np.arange(-binwidth/2, 100+binwidth/2, binwidth)
