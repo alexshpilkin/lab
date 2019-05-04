@@ -20,29 +20,25 @@ np.random.seed(args.seed)
 ######################################################################################
 # TODO: below is Kobak's code; gradually refactor it to use our json data
 
-npz = np.load(io.BytesIO(urllib.request.urlopen(args.kobak_npz).read()))
-
 year     = 2018        # Election year
 
+npz = np.load(io.BytesIO(urllib.request.urlopen(args.kobak_npz).read()))
 C = lambda c, tr = {ord(a): ord(b) for a, b in zip(u'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',u'abvgdeejzijklmnoprstufhzcss_y_eua')}: c.replace(' ', '_').replace(',', '').lower().translate(tr)
 table = npz['_' + str(year)]
-table_columns = table.dtype.names
 colFilter = ['ПУТИН', 'Путин', 'Единая Россия', 'ЕДИНАЯ РОССИЯ', 'Медведев']
-col = [col for col in table_columns if any([C(f) in col for f in colFilter])]
+col = [col for col in table.dtype.names if any([C(f) in col for f in colFilter])]
 leader = np.squeeze(table[col[0]])
 colFilter = ['Число избирателей, включенных', 'Число избирателей, внесенных']
-col = [col for col in table_columns if any([C(f) in col for f in colFilter])]
+col = [col for col in table.dtype.names if any([C(f) in col for f in colFilter])]
 voters = np.squeeze(table[col[0]])
 colFilter = ['бюллетеней, выданных']                # should select 3 columns
-col = [col for col in table_columns if any([C(f) in col for f in colFilter])]
+col = [col for col in table.dtype.names if any([C(f) in col for f in colFilter])]
 given = np.sum(np.vstack([table[c] for c in col]).T, axis=1)
 colFilter = ['действительных', 'недействительных']  # should select 2 columns
 excludeFilter = ['отметок']  # excludes one additional column in the 2000 data
-col = [col for col in table_columns if any([C(f) in col for f in colFilter]) and all([C(f) not in col for f in excludeFilter])]
+col = [col for col in table.dtype.names if any([C(f) in col for f in colFilter]) and all([C(f) not in col for f in excludeFilter])]
 received = np.sum(np.vstack([table[c] for c in col]).T, axis=1)
-regions = table['region']
-tiks = table['tik']
-uiks = table['uik']
+regions, tiks, uiks = table['region'], table['tik'], table['uik']
 
 ######################################################################################
 # histogram projections
