@@ -31,6 +31,11 @@ given = np.sum(np.vstack([table[c] for c in flt(['бюллетеней, выда
 received = np.sum(np.vstack([table[c] for c in flt(['действительных', 'недействительных'], ['отметок'])]).T, axis=1)
 regions, tiks, uiks = table['region'], table['tik'], table['uik']
 
+# Settings used in our papers:
+# * AOAS-2016:         binwidth=0.1,  addNoise=False, weights='voters', minSize = 0
+# * Significance-2016: binwidth=0.25, addNoise=True,  weights='off'     minSize = 0
+# * Significance-2018: binwidth=0.1,  addNoise=True,  weights='off'     minSize = 0
+
 ######################################################################################
 # histogram projections
 
@@ -41,12 +46,6 @@ weights  = 'voters'    # Weights: can be 'off'     (counts polling stations),
                        #                 'given'   (counts given ballots)
                        #                 'leader'  (counts ballots for the leader)
 minSize  = 0           # Exclude polling stations with number of voters less than minSize
-
-# Settings used in our papers:
-# * AOAS-2016:         binwidth=0.1,  addNoise=False, weights='voters', minSize = 0
-# * Significance-2016: binwidth=0.25, addNoise=True,  weights='off'     minSize = 0
-# * Significance-2018: binwidth=0.1,  addNoise=True,  weights='off'     minSize = 0
-
 ind = (received > 0) & (given < voters) & (voters >= minSize)
 edges = np.arange(-binwidth/2, 100+binwidth/2, binwidth)
 centers = np.arange(0,100,binwidth)
