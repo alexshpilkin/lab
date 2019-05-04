@@ -6,13 +6,13 @@ import numpy as np
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-json_read = lambda file_path: json.loads((urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8'))
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--ruelectiondata_json', default = 'https://github.com/schitaytesami/data/releases/download/20180909/lab_20180909.json')
 parser.add_argument('--kobak_npz', default = 'https://github.com/schitaytesami/lab/releases/download/data/electionsData.npz')
 parser.add_argument('--seed', default = 1, type = int)
 args = parser.parse_args()
+
+json_read = lambda file_path: json.loads((urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8'))
 
 np.random.seed(args.seed)
 #data = json_read(args.ruelectiondata_json)
@@ -22,22 +22,13 @@ np.random.seed(args.seed)
 
 year     = 2018        # Election year
 
-npz = np.load(io.BytesIO(urllib.request.urlopen(args.kobak_npz).read()))
+table = np.load(io.BytesIO(urllib.request.urlopen(args.kobak_npz).read()))['_' + str(year)]
 C = lambda c, tr = {ord(a): ord(b) for a, b in zip(u'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',u'abvgdeejzijklmnoprstufhzcss_y_eua')}: c.replace(' ', '_').replace(',', '').lower().translate(tr)
-table = npz['_' + str(year)]
-colFilter = ['ПУТИН', 'Путин', 'Единая Россия', 'ЕДИНАЯ РОССИЯ', 'Медведев']
-col = [col for col in table.dtype.names if any([C(f) in col for f in colFilter])]
-leader = np.squeeze(table[col[0]])
-colFilter = ['Число избирателей, включенных', 'Число избирателей, внесенных']
-col = [col for col in table.dtype.names if any([C(f) in col for f in colFilter])]
-voters = np.squeeze(table[col[0]])
-colFilter = ['бюллетеней, выданных']                # should select 3 columns
-col = [col for col in table.dtype.names if any([C(f) in col for f in colFilter])]
-given = np.sum(np.vstack([table[c] for c in col]).T, axis=1)
-colFilter = ['действительных', 'недействительных']  # should select 2 columns
-excludeFilter = ['отметок']  # excludes one additional column in the 2000 data
-col = [col for col in table.dtype.names if any([C(f) in col for f in colFilter]) and all([C(f) not in col for f in excludeFilter])]
-received = np.sum(np.vstack([table[c] for c in col]).T, axis=1)
+flt = lambda colFilter, excludeFilter = []: [col for col in table.dtype.names if any(C(f) in col for f in colFilter) and (not excludeFilter or all(C(f) not in col for f in excludeFilter)) ]
+leader = np.squeeze(table[flt(['ПУТИН', 'Путин', 'Единая Россия', 'ЕДИНАЯ РОССИЯ', 'Медведев'])[0]])
+voters = np.squeeze(table[flt(['Число избирателей, включенных', 'Число избирателей, внесенных'])[0]])
+given = np.sum(np.vstack([table[c] for c in flt(['бюллетеней, выданных'])]).T, axis=1)
+received = np.sum(np.vstack([table[c] for c in flt(['действительных', 'недействительных'], ['отметок'])]).T, axis=1)
 regions, tiks, uiks = table['region'], table['tik'], table['uik']
 
 ######################################################################################
