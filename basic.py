@@ -17,6 +17,7 @@ args = parser.parse_args()
 np.random.seed(args.seed)
 #data = json_read(args.ruelectiondata_json)
 
+######################################################################################
 # TODO: below is Kobak's code; gradually refactor it to use our json data
 
 npz = np.load(io.BytesIO(urllib.request.urlopen(args.kobak_npz).read()))
@@ -43,7 +44,9 @@ regions = table['region']
 tiks = table['tik']
 uiks = table['uik']
 
+######################################################################################
 # histogram projections
+
 binwidth = 0.1         # Bin width (in percentage points)
 addNoise = False       # If add U(-0.5,0.5) noise to the nominators (to remove division artifacts)
 weights  = 'voters'    # Weights: can be 'off'     (counts polling stations), 
@@ -57,19 +60,13 @@ minSize  = 0           # Exclude polling stations with number of voters less tha
 # * Significance-2016: binwidth=0.25, addNoise=True,  weights='off'     minSize = 0
 # * Significance-2018: binwidth=0.1,  addNoise=True,  weights='off'     minSize = 0
 
-######################################################################################
-
-
 ind = (received > 0) & (given < voters) & (voters >= minSize)
 edges = np.arange(-binwidth/2, 100+binwidth/2, binwidth)
 centers = np.arange(0,100,binwidth)
-
 noise = np.zeros(np.sum(ind)) if not addNoise else np.random.rand(np.sum(ind)) - .5
-
 w = dict(voters = voters, given = given, leader = leader)[weights][ind] if weights != 'off' else None
 h1 = np.histogram(100 * (given[ind]+noise)/voters[ind],    bins=edges, weights = w)[0]
 h2 = np.histogram(100 * (leader[ind]+noise)/received[ind], bins=edges, weights = w)[0]
-
 ylbl = dict(voters = 'Voters', given = 'Ballots given', leader = 'Ballots for leader').get(weights, 'Polling stations')
 plt.figure(figsize=(9,6))
 plt.subplot(211)
@@ -87,7 +84,9 @@ plt.tight_layout()
 plt.savefig('basic1.png')
 plt.close()
 
+######################################################################################
 # histogram 2d
+
 binwidth = 0.5
 minSize = 0
 edges = np.arange(-binwidth/2, 100+binwidth/2, binwidth)
