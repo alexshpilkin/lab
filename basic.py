@@ -29,7 +29,7 @@ leader = np.squeeze(table[flt(['ПУТИН', 'Путин', 'Единая Рос�
 voters_registered = np.squeeze(table[flt(['Число избирателей, включенных', 'Число избирателей, внесенных'])[0]])
 given = np.sum(np.vstack([table[c] for c in flt(['бюллетеней, выданных'])]).T, axis=1)
 received = np.sum(np.vstack([table[c] for c in flt(['действительных', 'недействительных'], ['отметок'])]).T, axis=1)
-regions, tiks, uiks = table['region'], table['tik'], table['uik']
+regions = table['region']
 
 # Settings used in our papers:
 # * AOAS-2016:         binwidth=0.1,  addNoise=False, weights='voters', minSize = 0
