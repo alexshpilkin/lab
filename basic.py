@@ -27,7 +27,7 @@ C = lambda c, tr = {ord(a): ord(b) for a, b in zip(u'абвгдеёжзийкл�
 flt = lambda colFilter, excludeFilter = []: [col for col in table.dtype.names if any(C(f) in col for f in colFilter) and (not excludeFilter or all(C(f) not in col for f in excludeFilter)) ]
 leader = np.squeeze(table[flt(['ПУТИН', 'Путин', 'Единая Россия', 'ЕДИНАЯ РОССИЯ', 'Медведев'])[0]])
 voters_registered = np.squeeze(table[flt(['Число избирателей, включенных', 'Число избирателей, внесенных'])[0]])
-given = np.sum(np.vstack([table[c] for c in flt(['бюллетеней, выданных'])]).T, axis=1)
+voters_voted = np.sum(np.vstack([table[c] for c in flt(['бюллетеней, выданных'])]).T, axis=1)
 received = np.sum(np.vstack([table[c] for c in flt(['действительных', 'недействительных'], ['отметок'])]).T, axis=1)
 regions = table['region']
 
@@ -46,12 +46,12 @@ weights  = 'voters'    # Weights: can be 'off'     (counts polling stations),
                        #                 'given'   (counts given ballots)
                        #                 'leader'  (counts ballots for the leader)
 minSize  = 0           # Exclude polling stations with number of voters less than minSize
-ind = (received > 0) & (given < voters_registered) & (voters_registered >= minSize)
+ind = (received > 0) & (voters_voted < voters_registered) & (voters_registered >= minSize)
 edges = np.arange(-binwidth/2, 100+binwidth/2, binwidth)
 centers = np.arange(0,100,binwidth)
 noise = np.zeros(np.sum(ind)) if not addNoise else np.random.rand(np.sum(ind)) - .5
-w = dict(voters = voters_registered, given = given, leader = leader)[weights][ind] if weights != 'off' else None
-h1 = np.histogram(100 * (given[ind]+noise)/voters_registered[ind],    bins=edges, weights = w)[0]
+w = dict(voters = voters_registered, given = voters_voted, leader = leader)[weights][ind] if weights != 'off' else None
+h1 = np.histogram(100 * (voters_voted[ind]+noise)/voters_registered[ind],    bins=edges, weights = w)[0]
 h2 = np.histogram(100 * (leader[ind]+noise)/received[ind], bins=edges, weights = w)[0]
 ylbl = dict(voters = 'Voters', given = 'Ballots given', leader = 'Ballots for leader').get(weights, 'Polling stations')
 plt.figure(figsize=(9,6))
@@ -78,8 +78,8 @@ minSize = 0
 edges = np.arange(-binwidth/2, 100+binwidth/2, binwidth)
 centers = np.arange(0,100,binwidth)
 plt.figure(figsize=(3,3))
-ind = (received > 0) & (given < voters_registered) & (voters_registered >= minSize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in regions])
-h = np.histogram2d(100 * given[ind]/voters_registered[ind], 100 * leader[ind]/received[ind], bins=edges, weights = voters_registered[ind])[0]
+ind = (received > 0) & (voters_voted < voters_registered) & (voters_registered >= minSize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in regions])
+h = np.histogram2d(100 * voters_voted[ind]/voters_registered[ind], 100 * leader[ind]/received[ind], bins=edges, weights = voters_registered[ind])[0]
 plt.imshow(h.T, vmin=0, vmax=50000, origin='lower', extent=[0,100,0,100], cmap='viridis', interpolation='none')
 plt.xticks([])
 plt.yticks([])
