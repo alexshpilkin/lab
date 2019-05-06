@@ -23,7 +23,7 @@ np.random.seed(args.seed)
 year     = 2018        # Election year
 
 table = np.load(io.BytesIO(urllib.request.urlopen(args.kobak_npz).read()))['_' + str(year)]
-C = lambda c, tr = {ord(a): ord(b) for a, b in zip(u'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',u'abvgdeejzijklmnoprstufhzcss_y_eua')}: c.replace(' ', '_').replace(',', '').lower().translate(tr)
+C = lambda c, tr = {ord(a): ord(b) for a, b in zip('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', 'abvgdeejzijklmnoprstufhzcss_y_eua')}: c.replace(' ', '_').replace(',', '').lower().translate(tr)
 flt = lambda colFilter, excludeFilter = []: [col for col in table.dtype.names if any(C(f) in col for f in colFilter) and (not excludeFilter or all(C(f) not in col for f in excludeFilter)) ]
 leader = np.squeeze(table[flt(['ПУТИН', 'Путин', 'Единая Россия', 'ЕДИНАЯ РОССИЯ', 'Медведев'])[0]])
 voters_registered = np.squeeze(table[flt(['Число избирателей, включенных', 'Число избирателей, внесенных'])[0]])
