@@ -23,16 +23,18 @@ np.random.seed(args.seed)
 ######################################################################################
 # TODO: below is Kobak's code; gradually refactor it to use our json data
 
-year     = 2018        # Election year
-
-table = np.load(io.BytesIO(urllib.request.urlopen(args.kobak_npz).read()))['_' + str(year)]
-C = lambda c, tr = {ord(a): ord(b) for a, b in zip('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', 'abvgdeejzijklmnoprstufhzcss_y_eua')}: c.replace(' ', '_').replace(',', '').lower().translate(tr)
-flt = lambda colFilter, excludeFilter = []: [col for col in table.dtype.names if any(C(f) in col for f in colFilter) and (not excludeFilter or all(C(f) not in col for f in excludeFilter)) ]
-leader = np.squeeze(table[flt(['ПУТИН', 'Путин', 'Единая Россия', 'ЕДИНАЯ РОССИЯ', 'Медведев'])[0]])
-voters_registered = np.squeeze(table[flt(['Число избирателей, включенных', 'Число избирателей, внесенных'])[0]])
-voters_voted = np.sum(np.vstack([table[c] for c in flt(['бюллетеней, выданных'])]).T, axis=1)
-ballots_valid_invalid = np.sum(np.vstack([table[c] for c in flt(['действительных', 'недействительных'], ['отметок'])]).T, axis=1)
-regions = table['region']
+def load_data(url = None, year = None, columns = ['leader', 'voters_registered', 'ballots_valid_invalid', 'regions']):
+  table = np.load(io.BytesIO(urllib.request.urlopen(url).read()))['_' + str(year)]
+  C = lambda c, tr = {ord(a): ord(b) for a, b in zip('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', 'abvgdeejzijklmnoprstufhzcss_y_eua')}: c.replace(' ', '_').replace(',', '').lower().translate(tr)
+  flt = lambda colFilter, excludeFilter = []: [col for col in table.dtype.names if any(C(f) in col for f in colFilter) and (not excludeFilter or all(C(f) not in col for f in excludeFilter)) ]
+  leader = np.squeeze(table[flt(['ПУТИН', 'Путин', 'Единая Россия', 'ЕДИНАЯ РОССИЯ', 'Медведев'])[0]])
+  voters_registered = np.squeeze(table[flt(['Число избирателей, включенных', 'Число избирателей, внесенных'])[0]])
+  voters_voted = np.sum(np.vstack([table[c] for c in flt(['бюллетеней, выданных'])]).T, axis=1)
+  ballots_valid_invalid = np.sum(np.vstack([table[c] for c in flt(['действительных', 'недействительных'], ['отметок'])]).T, axis=1)
+  regions = table['region']
+  return leader, voters_registered, voters_voted, ballots_valid_invalid, regions
+          
+leader, voters_registered, voters_voted, ballots_valid_invalid, regions = load_data(args.kobak_npz, year = 2018)
 
 # Settings used in our papers:
 # * AOAS-2016:         binwidth=0.1,  addNoise=False, weights='voters', minSize = 0
