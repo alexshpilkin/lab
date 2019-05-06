@@ -32,9 +32,10 @@ def load_data(url = None, year = None, columns = ['leader', 'voters_registered',
   voters_voted = np.sum(np.vstack([table[c] for c in flt(['бюллетеней, выданных'])]).T, axis=1)
   ballots_valid_invalid = np.sum(np.vstack([table[c] for c in flt(['действительных', 'недействительных'], ['отметок'])]).T, axis=1)
   regions = table['region']
-  return leader, voters_registered, voters_voted, ballots_valid_invalid, regions
+  return np.rec.fromarrays([leader, voters_registered, ballots_valid_invalid, regions], names = columns)
           
-leader, voters_registered, voters_voted, ballots_valid_invalid, regions = load_data(args.kobak_npz, year = 2018)
+data = load_data(args.kobak_npz, year = 2018)
+locals().update({k : data[k] for k in data.dtype.names})
 
 # Settings used in our papers:
 # * AOAS-2016:         binwidth=0.1,  addNoise=False, weights='voters', minSize = 0
