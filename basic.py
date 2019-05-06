@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser()
 parser.add_argument('--ruelectiondata_json', default = 'https://github.com/schitaytesami/data/releases/download/20180909/lab_20180909.json')
 parser.add_argument('--kobak_npz', default = 'https://github.com/schitaytesami/lab/releases/download/data/electionsData.npz')
+parser.add_argument('--kobak_weights', default = 'voters', choices = ['voters', 'given', 'leader', 'off'], help = '''  'off'     (counts polling stations);   'voters'  (counts registered voters);  'given'   (counts given ballots);  'leader'  (counts ballots for the leader) ''')
+parser.add_argument('--kobak_minsize', default = 0, type = int)
+parser.add_argument('--kobak_addnoise', action = 'store_true', help = ' If add U(-0.5,0.5) noise to the nominators (to remove division artifacts)')
 parser.add_argument('--seed', default = 1, type = int)
 args = parser.parse_args()
 
@@ -40,17 +43,11 @@ regions = table['region']
 # histogram projections
 
 binwidth = 0.1         # Bin width (in percentage points)
-addNoise = False       # If add U(-0.5,0.5) noise to the nominators (to remove division artifacts)
-weights  = 'voters'    # Weights: can be 'off'     (counts polling stations), 
-                       #                 'voters'  (counts registered voters),
-                       #                 'given'   (counts given ballots)
-                       #                 'leader'  (counts ballots for the leader)
-minSize  = 0           # Exclude polling stations with number of voters less than minSize
-ind = (ballots_valid_invalid > 0) & (voters_voted < voters_registered) & (voters_registered >= minSize)
+ind = (ballots_valid_invalid > 0) & (voters_voted < voters_registered) & (voters_registered >= args.kobak_minsize)
 edges = np.arange(-binwidth/2, 100+binwidth/2, binwidth)
 centers = np.arange(0,100,binwidth)
-noise = np.zeros(np.sum(ind)) if not addNoise else np.random.rand(np.sum(ind)) - .5
-w = dict(voters = voters_registered, given = voters_voted, leader = leader)[weights][ind] if weights != 'off' else None
+noise = np.zeros(np.sum(ind)) if not args.kobak_addnoise else np.random.rand(np.sum(ind)) - .5
+w = dict(voters = voters_registered, given = voters_voted, leader = leader)[args.kobak_weights][ind] if args.kobak_weights != 'off' else None
 h1 = np.histogram(100 * (voters_voted[ind]+noise)/voters_registered[ind],    bins=edges, weights = w)[0]
 h2 = np.histogram(100 * (leader[ind]+noise)/ballots_valid_invalid[ind], bins=edges, weights = w)[0]
 ylbl = dict(voters = 'Voters', given = 'Ballots given', leader = 'Ballots for leader').get(weights, 'Polling stations')
@@ -74,11 +71,10 @@ plt.close()
 # histogram 2d
 
 binwidth = 0.5
-minSize = 0
 edges = np.arange(-binwidth/2, 100+binwidth/2, binwidth)
 centers = np.arange(0,100,binwidth)
 plt.figure(figsize=(3,3))
-ind = (ballots_valid_invalid > 0) & (voters_voted < voters_registered) & (voters_registered >= minSize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in regions])
+ind = (ballots_valid_invalid > 0) & (voters_voted < voters_registered) & (voters_registered >= args.kobak_minsize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in regions])
 h = np.histogram2d(100 * voters_voted[ind]/voters_registered[ind], 100 * leader[ind]/ballots_valid_invalid[ind], bins=edges, weights = voters_registered[ind])[0]
 plt.imshow(h.T, vmin=0, vmax=50000, origin='lower', extent=[0,100,0,100], cmap='viridis', interpolation='none')
 plt.xticks([])
