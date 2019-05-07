@@ -11,10 +11,11 @@ import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--npz', default='https://github.com/schitaytesami/lab/releases/download/data/electionsData.npz')
-parser.add_argument('--weights', default='voters', choices=['voters', 'given', 'leader', 'off'], help='''  'off'     (counts polling stations);   'voters'  (counts registered voters);  'given'   (counts given ballots);  'leader'  (counts ballots for the leader) ''')
-parser.add_argument('--kobak_minsize', default=0, type=int)
-parser.add_argument('--kobak_addnoise', action='store_true', help='Whether to add add U(-0.5,0.5) noise to the numerators (to remove division artifacts)')
-parser.add_argument('--seed', default=1, type=int)
+parser.add_argument('--weights', default='voters', choices=['voters', 'given', 'leader', 'ones'], help='''  'ones'    (counts polling stations);   'voters'  (counts registered voters);  'given'   (counts given ballots);  'leader'  (counts ballots for the leader) ''')
+parser.add_argument('--min-size', default=0, type=int)
+parser.add_argument('--noise', action='store_true', help='Add U(-0.5,0.5) noise to the numerators (to remove division artifacts)')
+parser.add_argument('--bin-width', default=0.25, type=float, help='Bin width in percentage points')
+parser.add_argument('--seed', default=1, type=int, help='Seed for random noise')
 parser.add_argument('--colormap', default='viridis', type=str)
 args = parser.parse_args()
 
@@ -55,28 +56,32 @@ def loadnpz(url, year):
   regions = table['region']
   return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, regions], names=COLUMNS)
 
-year = 2018
-D = loadnpz(args.npz, year=year)
-locals().update({k : D[k] for k in D.dtype.names})
-
 # Settings used in our papers:
-# * AOAS-2016:         binwidth=0.1,  addNoise=False, weights='voters', minSize = 0
-# * Significance-2016: binwidth=0.25, addNoise=True,  weights='off'     minSize = 0
-# * Significance-2018: binwidth=0.1,  addNoise=True,  weights='off'     minSize = 0
+# * AOAS-2016:         binwidth=0.1,  addNoise=False, weights='voters', minsize = 0
+# * Significance-2016: binwidth=0.25, addNoise=True,  weights='ones',   minsize = 0
+# * Significance-2018: binwidth=0.1,  addNoise=True,  weights='ones',   minsize = 0
 
-binwidth = 0.1
-edges = np.arange(-binwidth/2, 100 + binwidth/2, binwidth)
-centers = np.arange(0, 100, binwidth)
+def histogram(data, binwidth, weights='voters', minsize=0, noise=False):
+  edges = np.arange(-binwidth/2, 100 + binwidth/2, binwidth)
+  centers = np.arange(0, 100, binwidth)
 
-wval, wlbl = {
-  'voters': (voters_registered, 'voters registered'),
-  'given':  (voters_voted, 'ballots given'),
-  'leader': (leader, 'ballots for leader'),
-  'off':    (np.ones(voters_registered.shape), 'polling stations'),
-}.get(args.weights, None)
-ind = (ballots_valid_invalid > 0) & (voters_voted < voters_registered) & (voters_registered >= args.kobak_minsize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in regions])
-noise = np.zeros(np.sum(ind)) if not args.kobak_addnoise else np.random.rand(np.sum(ind)) - .5
-h = np.histogram2d(100 * (voters_voted[ind] + noise) / voters_registered[ind], 100 * (leader[ind] + noise) / ballots_valid_invalid[ind], bins=edges, weights=wval[ind])[0]
+  wval, wlbl = {
+    'voters': (data.voters_registered, 'voters registered'),
+    'given':  (data.voters_voted, 'ballots given'),
+    'leader': (data.leader, 'ballots for leader'),
+    'ones':   (np.ones(data.voters_registered.shape), 'polling stations'),
+  }.get(weights)
+  ind = (data.ballots_valid_invalid > 0) & (data.voters_voted < data.voters_registered) & (data.voters_registered >= minsize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in data.regions])
+  noise1 = np.zeros(np.sum(ind)) if not noise else np.random.rand(np.sum(ind)) - .5
+  noise2 = np.zeros(np.sum(ind)) if not noise else np.random.rand(np.sum(ind)) - .5
+  h = np.histogram2d(100 * (data.voters_voted[ind] + noise1) / data.voters_registered[ind],
+                     100 * (data.leader[ind] + noise2) / data.ballots_valid_invalid[ind],
+                     bins=edges, weights=wval[ind])[0]
+  return wlbl, centers, h
+
+year = 2018
+D = loadnpz(args.npz, year)
+wlbl, centers, h = histogram(D, args.bin_width, weights=args.weights, minsize=args.min_size, noise=args.noise)
 ht = np.sum(h, axis=1)
 hr = np.sum(h, axis=0)
 
@@ -92,7 +97,7 @@ fig, axs = plt.subplots(2, 2, sharex='col', sharey='row', figsize=[size, size], 
 fig.suptitle(f'Russian election {year}', size=20, y=0.925, va='baseline')
 
 ax = axs[0,1]
-ax.text(0.5, 0.5, f'$\\times 10^{{{ylog}}}$ {wlbl}\nin ${binwidth}\\,\\%$ bin', wrap=True, ha='center', va='center', transform=ax.transAxes)  # the \n is a hack to force good wrapping
+ax.text(0.5, 0.5, f'$\\times 10^{{{ylog}}}$ {wlbl}\nin ${args.bin_width}\\,\\%$ bin', wrap=True, ha='center', va='center', transform=ax.transAxes)  # the \n is a hack to force good wrapping
 ax.set_frame_on(False)
 ax.axhline(0, 0, 1, color='black')
 ax.axvline(0, 0, 1, color='black')
