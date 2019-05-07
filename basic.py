@@ -9,27 +9,6 @@ import numpy as np
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--npz', default='https://github.com/schitaytesami/lab/releases/download/data/electionsData.npz')
-parser.add_argument('--weights', default='voters', choices={'voters', 'given', 'leader', 'ones'}, help='''  'ones'    (counts polling stations);   'voters'  (counts registered voters);  'given'   (counts given ballots);  'leader'  (counts ballots for the leader) ''')
-parser.add_argument('--min-size', default=0, type=int)
-parser.add_argument('--noise', action='store_true', help='Add U(-0.5,0.5) noise to the numerators (to remove division artifacts)')
-parser.add_argument('--bin-width', default=0.25, type=float, help='Bin width in percentage points')
-parser.add_argument('--seed', default=1, type=int, help='Seed for random noise')
-parser.add_argument('--colormap', default='viridis', type=str)
-parser.add_argument('--dpi', default=None, type=int)
-args = parser.parse_args()
-
-def urlopen(url):
-  if re.fullmatch(r'[A-Za-z0-9.+-]+://.*', url):  # RFC 3986
-    return urllib.request.urlopen(url)
-  else:
-    return open(url, 'rb')
-
-np.random.seed(args.seed)
-
-######################################################################################
-
 TRANSLIT = ('абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
             'abvgdeejzijklmnoprstufhzcss_y_eua')
 TRANSLIT = {ord(a): ord(b) for a, b in zip(*TRANSLIT)}
@@ -39,6 +18,12 @@ def translit(s):
   return s.translate(TRANSLIT)
 def toident(s):
   return translit(s.lower()).replace(' ', '_').replace(',', '')
+
+def urlopen(url):
+  if re.fullmatch(r'[A-Za-z0-9.+-]+://.*', url):  # RFC 3986
+    return urllib.request.urlopen(url)
+  else:
+    return open(url, 'rb')
 
 def loadnpz(url, year):
   with urlopen(url) as file:
@@ -152,9 +137,23 @@ def plot(title, wlbl, centers, h, cmap='viridis'):
     tick.set_pad(0)
     tick.label1.set_position((-offset, tick.label1.get_position()[1]))
 
-year = 2018
-D = loadnpz(args.npz, year)
-wlbl, centers, h = histogram(D, args.bin_width, weights=args.weights, minsize=args.min_size, noise=args.noise)
-plot(f'Russian election {year}', wlbl, centers, h, cmap=args.colormap)
-plt.savefig('basic.png', bbox_inches='tight', dpi=args.dpi)
-plt.close()
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--npz', default='https://github.com/schitaytesami/lab/releases/download/data/electionsData.npz')
+  parser.add_argument('--weights', default='voters', choices={'voters', 'given', 'leader', 'ones'}, help='''  'ones'    (counts polling stations);   'voters'  (counts registered voters);  'given'   (counts given ballots);  'leader'  (counts ballots for the leader) ''')
+  parser.add_argument('--min-size', default=0, type=int)
+  parser.add_argument('--noise', action='store_true', help='Add U(-0.5,0.5) noise to the numerators (to remove division artifacts)')
+  parser.add_argument('--bin-width', default=0.25, type=float, help='Bin width in percentage points')
+  parser.add_argument('--seed', default=1, type=int, help='Seed for random noise')
+  parser.add_argument('--colormap', default='viridis', type=str)
+  parser.add_argument('--dpi', default=None, type=int)
+  args = parser.parse_args()
+
+  year = 2018
+  np.random.seed(args.seed)
+  D = loadnpz(args.npz, year)
+  wlbl, centers, h = histogram(D, args.bin_width, weights=args.weights, minsize=args.min_size, noise=args.noise)
+  plot(f'Russian election {year}', wlbl, centers, h, cmap=args.colormap)
+  plt.savefig('basic.png', bbox_inches='tight', dpi=args.dpi)
+  plt.close()
