@@ -4,20 +4,25 @@ import argparse
 import json
 import io
 import re
+import unicodedata
 import urllib.request
 import numpy as np
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-TRANSLIT = ('абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
-            'abvgdeejzijklmnoprstufhzcss_y_eua')
+TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+            'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
+            'ABVGDEËŽZIJKLMNOPRSTUFHCČŠŜ"Y\'ÈÛÂ'
+            'abvgdeëžzijklmnoprstufhcčšŝ"y\'èûâ')  # ISO 9:1995
 TRANSLIT = {ord(a): ord(b) for a, b in zip(*TRANSLIT)}
 COLUMNS = ('leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'regions')
 
 def translit(s):
   return s.translate(TRANSLIT)
+
 def toident(s):
-  return translit(s.lower()).replace(' ', '_').replace(',', '')
+  s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
+  return s.lower().replace(' ', '_').replace(',', '').replace('.', '').replace('"', '').replace("'", '')
 
 def urlopen(url):
   if re.fullmatch(r'[A-Za-z0-9.+-]+://.*', url):  # RFC 3986
@@ -140,7 +145,7 @@ def plot(title, wlbl, centers, h, cmap='viridis'):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--npz', default='https://github.com/schitaytesami/lab/releases/download/data/electionsData.npz')
+  parser.add_argument('--npz', default='https://github.com/schitaytesami/lab/releases/download/data/data.npz')
   parser.add_argument('--weights', default='voters', choices={'voters', 'given', 'leader', 'ones'}, help='''  'ones'    (counts polling stations);   'voters'  (counts registered voters);  'given'   (counts given ballots);  'leader'  (counts ballots for the leader) ''')
   parser.add_argument('--min-size', default=0, type=int)
   parser.add_argument('--noise', action='store_true', help='Add U(-0.5,0.5) noise to the numerators (to remove division artifacts)')
