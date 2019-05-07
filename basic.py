@@ -72,11 +72,25 @@ w = wval[ind]
 h1 = np.histogram(100 * (voters_voted[ind] + noise) / voters_registered[ind], bins=edges, weights=w)[0]
 h2 = np.histogram(100 * (leader[ind] + noise) / ballots_valid_invalid[ind], bins=edges, weights=w)[0]
 
-axs[0,0].plot(centers, h1, linewidth=1, color=plt.get_cmap(args.colormap)(0))
-axs[0,0].axis('off')
+ax = axs[0,0]
+ax.plot(centers, h1, linewidth=1, color=plt.get_cmap(args.colormap)(0))
+ax.set_xticks(np.arange(0, 101, 10))
+ax.set_ylim(0, ax.get_ylim()[1])
+ax.set_frame_on(False)
+ax.axhline(0, 0, 1, color='black')
+ax.axvline(100, 0, 1, color='black')
+ax.tick_params(right=True, top=False, left=False, bottom=True,
+               labelright=False, labeltop=False, labelleft=False, labelbottom=False)
 
-axs[1,1].plot(h2, centers, linewidth=1, color=plt.get_cmap(args.colormap)(0))
-axs[1,1].axis('off')
+ax = axs[1,1]
+ax.plot(h2, centers, linewidth=1, color=plt.get_cmap(args.colormap)(0))
+ax.set_xlim(0, ax.get_xlim()[1])
+ax.set_yticks(np.arange(0, 101, 10))
+ax.set_frame_on(False)
+ax.axhline(100, 0, 1, color='black')
+ax.axvline(0, 0, 1, color='black')
+ax.tick_params(right=False, top=True, left=True, bottom=False,
+               labelright=False, labeltop=False, labelleft=False, labelbottom=False)
 
 ######################################################################################
 # histogram 2d
@@ -88,11 +102,20 @@ centers = np.arange(0, 100, binwidth)
 ind = (ballots_valid_invalid > 0) & (voters_voted < voters_registered) & (voters_registered >= args.kobak_minsize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in regions])
 h = np.histogram2d(100 * voters_voted[ind] / voters_registered[ind], 100 * leader[ind] / ballots_valid_invalid[ind], bins=edges, weights=wval[ind])[0]
 
-axs[1,0].imshow(h.T, vmin=0, vmax=np.quantile(h, 0.99), origin='lower', extent=[0,100,0,100], cmap=args.colormap, interpolation='none')
-axs[1,0].axis('off')
-plt.text(10, 85, year, color='w')
+ax = axs[1,0]
+ax.imshow(h.T, vmin=0, vmax=np.quantile(h, 0.99), origin='lower', extent=[0,100,0,100], cmap=args.colormap, interpolation='none')
+ax.set_frame_on(False)
+ax.axhline(100, 0, 1, color='black')
+ax.axvline(100, 0, 1, color='black')
+ax.tick_params(right=True, top=True, left=False, bottom=False,
+               labelright=False, labeltop=False, labelleft=False, labelbottom=False)
 
-fig.delaxes(axs[0,1])
+ax = axs[0,1]
+ax.set_frame_on(False)
+ax.axhline(0, 0, 1, color='black')
+ax.axvline(0, 0, 1, color='black')
+ax.tick_params(right=False, top=False, left=True, bottom=True,
+               labelright=False, labeltop=False, labelleft=False, labelbottom=False)
 
 plt.savefig('basic.png', bbox_inches='tight')
 plt.close()
