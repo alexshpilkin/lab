@@ -23,7 +23,7 @@ np.random.seed(args.seed)
 ######################################################################################
 # TODO: below is Kobak's code; gradually refactor it to use our json data
 
-def load_data(url = None, year = None, columns = ['leader', 'voters_registered', 'ballots_valid_invalid', 'regions']):
+def load_data(url = None, year = None, columns = ['leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'regions']):
   table = np.load(io.BytesIO(urllib.request.urlopen(url).read()))['_' + str(year)]
   C = lambda c, tr = {ord(a): ord(b) for a, b in zip('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', 'abvgdeejzijklmnoprstufhzcss_y_eua')}: c.replace(' ', '_').replace(',', '').lower().translate(tr)
   flt = lambda colFilter, excludeFilter = []: [col for col in table.dtype.names if any(C(f) in col for f in colFilter) and (not excludeFilter or all(C(f) not in col for f in excludeFilter)) ]
@@ -32,9 +32,11 @@ def load_data(url = None, year = None, columns = ['leader', 'voters_registered',
   voters_voted = np.sum(np.vstack([table[c] for c in flt(['бюллетеней, выданных'])]).T, axis=1)
   ballots_valid_invalid = np.sum(np.vstack([table[c] for c in flt(['действительных', 'недействительных'], ['отметок'])]).T, axis=1)
   regions = table['region']
-  return np.rec.fromarrays([leader, voters_registered, ballots_valid_invalid, regions], names = columns)
-          
-data = load_data(args.kobak_npz, year = 2018)
+  return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, regions], names = columns)
+
+year = 2018
+
+data = load_data(args.kobak_npz, year = year)
 locals().update({k : data[k] for k in data.dtype.names})
 
 # Settings used in our papers:
@@ -53,7 +55,7 @@ noise = np.zeros(np.sum(ind)) if not args.kobak_addnoise else np.random.rand(np.
 w = dict(voters = voters_registered, given = voters_voted, leader = leader)[args.kobak_weights][ind] if args.kobak_weights != 'off' else None
 h1 = np.histogram(100 * (voters_voted[ind]+noise)/voters_registered[ind],    bins=edges, weights = w)[0]
 h2 = np.histogram(100 * (leader[ind]+noise)/ballots_valid_invalid[ind], bins=edges, weights = w)[0]
-ylbl = dict(voters = 'Voters', given = 'Ballots given', leader = 'Ballots for leader').get(weights, 'Polling stations')
+ylbl = dict(voters = 'Voters', given = 'Ballots given', leader = 'Ballots for leader').get(args.kobak_weights, 'Polling stations')
 plt.figure(figsize=(9,6))
 plt.subplot(211)
 plt.plot(centers, h1, linewidth=1)
