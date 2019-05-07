@@ -23,10 +23,10 @@ np.random.seed(args.seed)
 ######################################################################################
 # TODO: below is Kobak's code; gradually refactor it to use our json data
 
-def load_data(url = None, year = None, columns = ['leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'regions']):
+def load_data(url = None, year = None, columns = ['leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'regions'], translate_latin = False, translate_table = ('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', 'abvgdeejzijklmnoprstufhzcss_y_eua')):
   table = np.load(io.BytesIO(urllib.request.urlopen(url).read()))['_' + str(year)]
-  C = lambda c, tr = {ord(a): ord(b) for a, b in zip('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', 'abvgdeejzijklmnoprstufhzcss_y_eua')}: c.replace(' ', '_').replace(',', '').lower().translate(tr)
-  flt = lambda colFilter, excludeFilter = []: [col for col in table.dtype.names if any(C(f) in col for f in colFilter) and (not excludeFilter or all(C(f) not in col for f in excludeFilter)) ]
+  T = lambda c, tr = {ord(a): ord(b) for a, b in zip(*translate_table)}: c.replace(' ', '_').replace(',', '').lower().translate(tr)
+  flt = lambda colFilter, excludeFilter = []: [col for col in table.dtype.names if any(T(f) in col for f in colFilter) and (not excludeFilter or all(T(f) not in col for f in excludeFilter)) ]
   leader = np.squeeze(table[flt(['ПУТИН', 'Путин', 'Единая Россия', 'ЕДИНАЯ РОССИЯ', 'Медведев'])[0]])
   voters_registered = np.squeeze(table[flt(['Число избирателей, включенных', 'Число избирателей, внесенных'])[0]])
   voters_voted = np.sum(np.vstack([table[c] for c in flt(['бюллетеней, выданных'])]).T, axis=1)
