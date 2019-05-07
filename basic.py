@@ -15,6 +15,7 @@ parser.add_argument('--weights', default='voters', choices=['voters', 'given', '
 parser.add_argument('--kobak_minsize', default=0, type=int)
 parser.add_argument('--kobak_addnoise', action='store_true', help='Whether to add add U(-0.5,0.5) noise to the numerators (to remove division artifacts)')
 parser.add_argument('--seed', default=1, type=int)
+parser.add_argument('--colormap', default='viridis', type=str)
 args = parser.parse_args()
 
 json_read = lambda file_path: json.loads((urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8'))
@@ -56,6 +57,9 @@ wval, wlbl = {
 # * Significance-2016: binwidth=0.25, addNoise=True,  weights='off'     minSize = 0
 # * Significance-2018: binwidth=0.1,  addNoise=True,  weights='off'     minSize = 0
 
+fig, axs = plt.subplots(2, 2, sharex='col', sharey='row', figsize=[9,9], gridspec_kw={'width_ratios': [3,1], 'wspace': 0.2, 'height_ratios': [1,3], 'hspace': 0.2})
+fig.suptitle(f'Russian election {year}', size=24, y=0.925, va='baseline')
+
 ######################################################################################
 # histogram projections
 
@@ -67,21 +71,12 @@ noise = np.zeros(np.sum(ind)) if not args.kobak_addnoise else np.random.rand(np.
 w = wval[ind]
 h1 = np.histogram(100 * (voters_voted[ind] + noise) / voters_registered[ind], bins=edges, weights=w)[0]
 h2 = np.histogram(100 * (leader[ind] + noise) / ballots_valid_invalid[ind], bins=edges, weights=w)[0]
-plt.figure(figsize=(9,6))
-plt.subplot(211)
-plt.plot(centers, h1, linewidth=1)
-plt.xlabel("Turnout (%)")
-plt.ylabel(f'{wlbl} in {binwidth}% bins')
-plt.xticks(np.arange(0, 101, 10))
-plt.title(f'Russian election {year}')
-plt.subplot(212)
-plt.plot(centers, h2, linewidth=1)
-plt.xlabel("Leader's result (%)")
-plt.ylabel(f'{wlbl} in {binwidth}% bins')
-plt.xticks(np.arange(0, 101, 10))
-plt.tight_layout()
-plt.savefig('basic1.png')
-plt.close()
+
+axs[0,0].plot(centers, h1, linewidth=1, color=plt.get_cmap(args.colormap)(0))
+axs[0,0].axis('off')
+
+axs[1,1].plot(h2, centers, linewidth=1, color=plt.get_cmap(args.colormap)(0))
+axs[1,1].axis('off')
 
 ######################################################################################
 # histogram 2d
@@ -89,14 +84,15 @@ plt.close()
 binwidth = 0.5
 edges = np.arange(-binwidth/2, 100 + binwidth/2, binwidth)
 centers = np.arange(0, 100, binwidth)
-plt.figure(figsize=(3,3))
+
 ind = (ballots_valid_invalid > 0) & (voters_voted < voters_registered) & (voters_registered >= args.kobak_minsize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in regions])
 h = np.histogram2d(100 * voters_voted[ind] / voters_registered[ind], 100 * leader[ind] / ballots_valid_invalid[ind], bins=edges, weights=wval[ind])[0]
-plt.imshow(h.T, vmin=0, vmax=np.quantile(h, 0.99), origin='lower', extent=[0,100,0,100], cmap='viridis', interpolation='none')
-plt.xticks([])
-plt.yticks([])
-plt.axis('off')
+
+axs[1,0].imshow(h.T, vmin=0, vmax=np.quantile(h, 0.99), origin='lower', extent=[0,100,0,100], cmap=args.colormap, interpolation='none')
+axs[1,0].axis('off')
 plt.text(10, 85, year, color='w')
-plt.tight_layout()
-plt.savefig('basic2.png')
+
+fig.delaxes(axs[0,1])
+
+plt.savefig('basic.png', bbox_inches='tight')
 plt.close()
