@@ -2,15 +2,15 @@
 
 import argparse
 import json
-import urllib.request
 import io
+import re
+import urllib.request
 import numpy as np
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--ruelectiondata_json', default='https://github.com/schitaytesami/data/releases/download/20180909/lab_20180909.json')
-parser.add_argument('--kobak_npz', default='https://github.com/schitaytesami/lab/releases/download/data/electionsData.npz')
+parser.add_argument('--npz', default='https://github.com/schitaytesami/lab/releases/download/data/electionsData.npz')
 parser.add_argument('--weights', default='voters', choices=['voters', 'given', 'leader', 'off'], help='''  'off'     (counts polling stations);   'voters'  (counts registered voters);  'given'   (counts given ballots);  'leader'  (counts ballots for the leader) ''')
 parser.add_argument('--kobak_minsize', default=0, type=int)
 parser.add_argument('--kobak_addnoise', action='store_true', help='Whether to add add U(-0.5,0.5) noise to the numerators (to remove division artifacts)')
@@ -18,30 +18,45 @@ parser.add_argument('--seed', default=1, type=int)
 parser.add_argument('--colormap', default='viridis', type=str)
 args = parser.parse_args()
 
-json_read = lambda file_path: json.loads((urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8'))
-np_read = lambda file_path: np.load(io.BytesIO((urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read()))
+def urlopen(url):
+  if re.fullmatch(r'[A-Za-z0-9.+-]+://.*', url):  # RFC 3986
+    return urllib.request.urlopen(url)
+  else:
+    return open(url, 'rb')
 
 np.random.seed(args.seed)
-#data = json_read(args.ruelectiondata_json)
 
 ######################################################################################
 
-def load_data(url=None, year=None, columns=['leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'regions'], translate_latin=False, translate_table=('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', 'abvgdeejzijklmnoprstufhzcss_y_eua')):
-  table = np_read(url)['_' + str(year)]
-  T = lambda c, tr = {ord(a): ord(b) for a, b in zip(*translate_table)}: c.replace(' ', '_').replace(',', '').lower().translate(tr)
-  flt = lambda colFilter, excludeFilter=[]: \
-        [col for col in table.dtype.names if any(T(f) in col for f in colFilter) and
-                                             (not excludeFilter or all(T(f) not in col for f in excludeFilter))]
-  leader = np.squeeze(table[flt(['ПУТИН', 'Путин', 'Единая Россия', 'ЕДИНАЯ РОССИЯ', 'Медведев'])[0]])
-  voters_registered = np.squeeze(table[flt(['Число избирателей, включенных', 'Число избирателей, внесенных'])[0]])
-  voters_voted = np.sum(np.vstack([table[c] for c in flt(['бюллетеней, выданных'])]).T, axis=1)
-  ballots_valid_invalid = np.sum(np.vstack([table[c] for c in flt(['действительных', 'недействительных'], ['отметок'])]).T, axis=1)
+TRANSLIT = ('абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
+            'abvgdeejzijklmnoprstufhzcss_y_eua')
+TRANSLIT = {ord(a): ord(b) for a, b in zip(*TRANSLIT)}
+COLUMNS = ('leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'regions')
+
+def translit(s):
+  return s.translate(TRANSLIT)
+def toident(s):
+  return translit(s.lower()).replace(' ', '_').replace(',', '')
+
+def loadnpz(url, year):
+  with urlopen(url) as file:
+    table = np.load(file)['_' + str(year)]
+
+  def flt(include, exclude=()):
+    return [col
+            for col in table.dtype.names
+            if any(toident(f) in col for f in include) and
+               all(toident(f) not in col for f in exclude)]
+
+  leader = np.squeeze(table[flt({'Путин', 'Единая Россия', 'Медведев'})[0]])
+  voters_registered = np.squeeze(table[flt({'Число избирателей, включенных', 'Число избирателей, внесенных'})[0]])
+  voters_voted = np.sum(np.vstack([table[c] for c in flt({'бюллетеней, выданных'})]).T, axis=1)
+  ballots_valid_invalid = np.sum(np.vstack([table[c] for c in flt({'действительных', 'недействительных'}, {'отметок'})]).T, axis=1)
   regions = table['region']
-  return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, regions], names=columns)
+  return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, regions], names=COLUMNS)
 
 year = 2018
-
-D = load_data(args.kobak_npz, year=year)
+D = loadnpz(args.npz, year=year)
 locals().update({k : D[k] for k in D.dtype.names})
 
 # Settings used in our papers:
