@@ -16,6 +16,7 @@ parser.add_argument('--seed', default = 1, type = int)
 args = parser.parse_args()
 
 json_read = lambda file_path: json.loads((urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8'))
+np_read = lambda file_path: np.load(io.BytesIO((urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read()))
 
 np.random.seed(args.seed)
 #data = json_read(args.ruelectiondata_json)
@@ -24,7 +25,7 @@ np.random.seed(args.seed)
 # TODO: below is Kobak's code; gradually refactor it to use our json data
 
 def load_data(url = None, year = None, columns = ['leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'regions'], translate_latin = False, translate_table = ('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', 'abvgdeejzijklmnoprstufhzcss_y_eua')):
-  table = np.load(io.BytesIO(urllib.request.urlopen(url).read()))['_' + str(year)]
+  table = np_read(url)['_' + str(year)]
   T = lambda c, tr = {ord(a): ord(b) for a, b in zip(*translate_table)}: c.replace(' ', '_').replace(',', '').lower().translate(tr)
   flt = lambda colFilter, excludeFilter = []: [col for col in table.dtype.names if any(T(f) in col for f in colFilter) and (not excludeFilter or all(T(f) not in col for f in excludeFilter)) ]
   leader = np.squeeze(table[flt(['ПУТИН', 'Путин', 'Единая Россия', 'ЕДИНАЯ РОССИЯ', 'Медведев'])[0]])
