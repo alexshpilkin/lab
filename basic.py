@@ -7,7 +7,6 @@ import io
 import numpy as np
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import matplotlib.transforms as xfrm
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--ruelectiondata_json', default='https://github.com/schitaytesami/data/releases/download/20180909/lab_20180909.json')
