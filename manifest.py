@@ -75,7 +75,7 @@ def chop(s):
 		return (s[0], *trim(s[1:]))
 	else:
 		i = 0
-		while s[i] not in LONERS | SPACES:
+		while i < len(s) and s[i] not in LONERS | SPACES:
 			i += 1
 		return (str(s[:i]), *trim(s[i:]))
 
@@ -89,7 +89,55 @@ def tokenize(s):
 def join(ps):
 	return ''.join((t or '') + (' ' if w else '') for t, w in ps)
 
+def parsefields(ps):
+	it = iter(ps)
+	t, _ = next(ps)
+	assert t is None
+	return fields(it)
+
+def fields(it):
+	terms = [(1, field(it))]
+	while True:
+		try:
+			t, _ = next(it)
+		except StopIteration:
+			return terms
+		if t == '+':
+			op = 1
+		elif t == '-':
+			op = -1
+		else:
+			raise ValueError('expected an operator')
+		terms.append((op, field(it)))
+
+def field(it):
+	try:
+		t, _ = next(it)
+	except StopIteration:
+		raise ValueError('expected a field')
+
+	if t == '{':
+		end = '}'
+		fun = str
+	elif t == '[':
+		end = ']'
+		fun = int
+	else:
+		raise ValueError('expected a field')
+
+	text = []
+	while True:
+		try:
+			t, w = next(it)
+		except StopIteration:
+			raise ValueError('unterminated field')
+		if t == end:
+			break
+		text.append((t, w))
+
+	return fun(join(text))
+
 if __name__ == '__main__':
 	from sys import stdin
 	msg = Parser().parse(stdin, headersonly=True)
-	print(join(tokenize(strview(msg['Present']))))
+	print(parsefields(tokenize(strview(msg['Present']))))
