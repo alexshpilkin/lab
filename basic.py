@@ -27,7 +27,7 @@ def urlopen(url):
 
 def loadnpz(url, year):
   with urlopen(url) as file:
-    table = np.load(file)['_' + str(year)]
+    table = np.load(io.BytesIO(file.read()))['_' + str(year)]
 
   def flt(include, exclude=()):
     return [col
