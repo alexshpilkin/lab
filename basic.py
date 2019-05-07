@@ -47,10 +47,10 @@ D = load_data(args.kobak_npz, year=year)
 locals().update({k : D[k] for k in D.dtype.names})
 
 wval, wlbl = {
-  'voters': (voters_registered, 'Voters'),
-  'given':  (voters_voted, 'Ballots given'),
-  'leader': (leader, 'Ballots for leader'),
-  'off':    (np.ones(voters_registered.shape), 'Polling stations'),
+  'voters': (voters_registered, 'voters registered'),
+  'given':  (voters_voted, 'ballots given'),
+  'leader': (leader, 'ballots for leader'),
+  'off':    (np.ones(voters_registered.shape), 'polling stations'),
 }.get(args.weights, None)
 
 # Settings used in our papers:
@@ -60,7 +60,7 @@ wval, wlbl = {
 
 size, aspect, spacing = 9.0, 3, 0.15
 
-fig, axs = plt.subplots(2, 2, sharex='col', sharey='row', figsize=[size, size], gridspec_kw={'width_ratios': [aspect, 1], 'wspace': spacing, 'height_ratios': [1, aspect], 'hspace': spacing})
+fig, axs = plt.subplots(2, 2, sharex='col', sharey='row', figsize=[size, size], gridspec_kw=dict(width_ratios=[aspect, 1], wspace=spacing, height_ratios=[1, aspect], hspace=spacing))
 fig.suptitle(f'Russian election {year}', size=20, y=0.925, va='baseline')
 
 ######################################################################################
@@ -101,6 +101,14 @@ ax.axvline(0, 0, 1, color='black')
 ax.tick_params(right=False, top=True, left=True, bottom=False,
                labelright=False, labeltop=False, labelleft=True, labelbottom=False)
 
+ax = axs[0,1]
+ax.text(0.5, 0.5, f'$\\times 10^{{{ylog}}}$ {wlbl}\nin ${binwidth}\\,\\%$ bin', wrap=True, ha='center', va='center', transform=ax.transAxes)  # the \n is a hack to force good wrapping
+ax.set_frame_on(False)
+ax.axhline(0, 0, 1, color='black')
+ax.axvline(0, 0, 1, color='black')
+ax.tick_params(right=False, top=False, left=True, bottom=True,
+               labelright=False, labeltop=False, labelleft=True, labelbottom=True)
+
 ######################################################################################
 # histogram 2d
 
@@ -113,19 +121,13 @@ h = np.histogram2d(100 * voters_voted[ind] / voters_registered[ind], 100 * leade
 
 ax = axs[1,0]
 ax.imshow(h.T, vmin=0, vmax=np.quantile(h, 0.99), origin='lower', extent=[0,100,0,100], cmap=args.colormap, interpolation='none')
+ax.set_xlabel('Turnout %')
+ax.set_ylabel('Leader’s result %')
 ax.set_frame_on(False)
 ax.axhline(100, 0, 1, color='black')
 ax.axvline(100, 0, 1, color='black')
 ax.tick_params(right=True, top=True, left=False, bottom=False,
                labelright=False, labeltop=False, labelleft=False, labelbottom=False)
-
-ax = axs[0,1]
-ax.text(0.5, 0.5, f'$\\times 10^{{{ylog}}}$', ha='center', va='center', transform=ax.transAxes)
-ax.set_frame_on(False)
-ax.axhline(0, 0, 1, color='black')
-ax.axvline(0, 0, 1, color='black')
-ax.tick_params(right=False, top=False, left=True, bottom=True,
-               labelright=False, labeltop=False, labelleft=True, labelbottom=True)
 
 top    = min(axs[0,0].get_position().y0, axs[0,0].get_position().y1)
 bottom = max(axs[1,0].get_position().y0, axs[1,0].get_position().y1)
