@@ -7,6 +7,7 @@ import io
 import numpy as np
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.transforms as xfrm
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--ruelectiondata_json', default='https://github.com/schitaytesami/data/releases/download/20180909/lab_20180909.json')
@@ -57,8 +58,10 @@ wval, wlbl = {
 # * Significance-2016: binwidth=0.25, addNoise=True,  weights='off'     minSize = 0
 # * Significance-2018: binwidth=0.1,  addNoise=True,  weights='off'     minSize = 0
 
-fig, axs = plt.subplots(2, 2, sharex='col', sharey='row', figsize=[9,9], gridspec_kw={'width_ratios': [3,1], 'wspace': 0.2, 'height_ratios': [1,3], 'hspace': 0.2})
-fig.suptitle(f'Russian election {year}', size=24, y=0.925, va='baseline')
+size, aspect, spacing = 9.0, 3, 0.15
+
+fig, axs = plt.subplots(2, 2, sharex='col', sharey='row', figsize=[size, size], gridspec_kw={'width_ratios': [aspect, 1], 'wspace': spacing, 'height_ratios': [1, aspect], 'hspace': spacing})
+fig.suptitle(f'Russian election {year}', size=20, y=0.925, va='baseline')
 
 ######################################################################################
 # histogram projections
@@ -72,25 +75,31 @@ w = wval[ind]
 h1 = np.histogram(100 * (voters_voted[ind] + noise) / voters_registered[ind], bins=edges, weights=w)[0]
 h2 = np.histogram(100 * (leader[ind] + noise) / ballots_valid_invalid[ind], bins=edges, weights=w)[0]
 
+ymax = min(np.max(h1), np.max(h2))
+ylog, yfac = 0, 1
+while yfac < ymax:
+  ylog, yfac = ylog+1, yfac*10
+ylog, yfac = ylog-1, yfac//10
+
 ax = axs[0,0]
-ax.plot(centers, h1, linewidth=1, color=plt.get_cmap(args.colormap)(0))
+ax.plot(centers, h1 / yfac, linewidth=1, color=plt.get_cmap(args.colormap)(0))
 ax.set_xticks(np.arange(0, 101, 10))
 ax.set_ylim(0, ax.get_ylim()[1])
 ax.set_frame_on(False)
 ax.axhline(0, 0, 1, color='black')
 ax.axvline(100, 0, 1, color='black')
 ax.tick_params(right=True, top=False, left=False, bottom=True,
-               labelright=False, labeltop=False, labelleft=False, labelbottom=False)
+               labelright=False, labeltop=False, labelleft=False, labelbottom=True)
 
 ax = axs[1,1]
-ax.plot(h2, centers, linewidth=1, color=plt.get_cmap(args.colormap)(0))
+ax.plot(h2 / yfac, centers, linewidth=1, color=plt.get_cmap(args.colormap)(0))
 ax.set_xlim(0, ax.get_xlim()[1])
 ax.set_yticks(np.arange(0, 101, 10))
 ax.set_frame_on(False)
 ax.axhline(100, 0, 1, color='black')
 ax.axvline(0, 0, 1, color='black')
 ax.tick_params(right=False, top=True, left=True, bottom=False,
-               labelright=False, labeltop=False, labelleft=False, labelbottom=False)
+               labelright=False, labeltop=False, labelleft=True, labelbottom=False)
 
 ######################################################################################
 # histogram 2d
@@ -111,11 +120,30 @@ ax.tick_params(right=True, top=True, left=False, bottom=False,
                labelright=False, labeltop=False, labelleft=False, labelbottom=False)
 
 ax = axs[0,1]
+ax.text(0.5, 0.5, f'$\\times 10^{{{ylog}}}$', ha='center', va='center', transform=ax.transAxes)
 ax.set_frame_on(False)
 ax.axhline(0, 0, 1, color='black')
 ax.axvline(0, 0, 1, color='black')
 ax.tick_params(right=False, top=False, left=True, bottom=True,
-               labelright=False, labeltop=False, labelleft=False, labelbottom=False)
+               labelright=False, labeltop=False, labelleft=True, labelbottom=True)
+
+top    = min(axs[0,0].get_position().y0, axs[0,0].get_position().y1)
+bottom = max(axs[1,0].get_position().y0, axs[1,0].get_position().y1)
+offset = ((top - bottom) / axs[0,0].get_position().height / 2 -
+          axs[0,0].xaxis.get_major_ticks()[0].get_tick_padding() / 144)
+for tick in axs[0,0].xaxis.get_major_ticks() + axs[0,1].xaxis.get_major_ticks():
+  tick.label1.set_va('center')
+  tick.set_pad(0)
+  tick.label1.set_position((tick.label1.get_position()[0], -offset))
+
+right = min(axs[1,1].get_position().x0, axs[1,1].get_position().x1)
+left  = max(axs[1,0].get_position().x0, axs[1,0].get_position().x1)
+offset = ((right - left) / axs[1,1].get_position().width / 2 -
+          axs[1,1].yaxis.get_major_ticks()[0].get_tick_padding() / 144)
+for tick in axs[0,1].yaxis.get_major_ticks() + axs[1,1].yaxis.get_major_ticks():
+  tick.label1.set_ha('center')
+  tick.set_pad(0)
+  tick.label1.set_position((-offset, tick.label1.get_position()[1]))
 
 plt.savefig('basic.png', bbox_inches='tight')
 plt.close()
