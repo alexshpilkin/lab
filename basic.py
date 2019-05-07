@@ -36,8 +36,8 @@ def load_data(url = None, year = None, columns = ['leader', 'voters_registered',
 
 year = 2018
 
-data = load_data(args.kobak_npz, year = year)
-locals().update({k : data[k] for k in data.dtype.names})
+D = load_data(args.kobak_npz, year = year)
+locals().update({k : D[k] for k in D.dtype.names})
 
 # Settings used in our papers:
 # * AOAS-2016:         binwidth=0.1,  addNoise=False, weights='voters', minSize = 0
