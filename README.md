@@ -17,4 +17,4 @@ https://cikinfo.modos189.ru
 
 https://habr.com/en/post/354020/
 
-https://corbulon.livejournal.com/175917.html
+https://corbulon.livejournal.com/175917.html https://corbulon.livejournal.com/177010.html
