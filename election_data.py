@@ -28,19 +28,21 @@ def toident(s):
   return (s.lower().replace(' ', '_').replace(',', '').replace('.', '')
            .replace('"', '').replace("'", '').replace('(', '').replace(')', ''))
 
-def urlopen(url):
-  if re.fullmatch(r'[A-Za-z0-9.+-]+://.*', url):  # RFC 3986
-    return urllib.request.urlopen(url)
+def urlopen(fileorurl):
+  if isinstance(fileorurl, io.BufferedIOBase):
+    return io.BufferedReader(fileorurl)
+  elif re.fullmatch(r'[A-Za-z0-9.+-]+://.*', fileorurl):  # RFC 3986
+    return urllib.request.urlopen(fileorurl)
   else:
-    return open(url, 'rb')
+    return open(fileorurl, 'rb')
 
-def loadnpz(url, year):
-  with urlopen(url) as file:
+def loadnpz(fileorurl, year):
+  with urlopen(fileorurl) as file:
     table = np.load(io.BytesIO(file.read()))['_' + str(year)]
   return load(table)
 
-def loadtsv(url):
-  with urlopen(url) as file:
+def loadtsv(fileorurl):
+  with urlopen(fileorurl) as file:
     if file.peek(1)[:1] == b'\x1f':  # gzip magic
       file = gzip.GzipFile(fileobj=file)
     rd = csv.DictReader(io.TextIOWrapper(file, newline='\r\n'), dialect='ietf-tab')
@@ -65,6 +67,7 @@ def loadtsv(url):
       table[i] = tuple(row.values())
       i += 1
     table.resize(i)
+
     return load(table)
 
 def load(table):
