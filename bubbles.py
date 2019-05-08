@@ -58,8 +58,8 @@ if __name__ == '__main__':
 	from sys import stderr
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--npz', default='https://github.com/schitaytesami/lab/releases/download/data/data.npz')
-	parser.add_argument('--year', default=2018, type=int)
+	parser.add_argument('--npz', default='https://github.com/schitaytesami/lab/releases/download/data/data.npz', help='Data file to use')
+	parser.add_argument('--year', default=2018, type=int, help='Election year to use')
 	args = parser.parse_args()
 
 	D = election_data.loadnpz(args.npz, args.year)

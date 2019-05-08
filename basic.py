@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import urllib.request
 import numpy as np
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -106,15 +105,15 @@ def plot(title, wlbl, centers, h, cmap='viridis'):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--npz', default='https://github.com/schitaytesami/lab/releases/download/data/data.npz')
-  parser.add_argument('--weights', default='voters', choices={'voters', 'given', 'leader', 'ones'}, help='''  'ones'    (counts polling stations);   'voters'  (counts registered voters);  'given'   (counts given ballots);  'leader'  (counts ballots for the leader) ''')
-  parser.add_argument('--min-size', default=0, type=int)
-  parser.add_argument('--noise', action='store_true', help='Add U(-0.5,0.5) noise to the numerators (to remove division artifacts)')
+  parser.add_argument('--npz', default='https://github.com/schitaytesami/lab/releases/download/data/data.npz', help='Data file to use')
+  parser.add_argument('--year', default=2018, type=int, help='Election year to use')
   parser.add_argument('--bin-width', default=0.25, type=float, help='Bin width in percentage points')
+  parser.add_argument('--weights', default='voters', choices={'voters', 'given', 'leader', 'ones'}, help="'ones' (counts polling stations), 'voters'  (counts registered voters), 'given' (counts ballots given), or 'leader' (counts ballots for the leader)")
+  parser.add_argument('--min-size', default=0, type=int, help='Minimum precinct size to include')
+  parser.add_argument('--noise', action='store_true', help='Add U(-0.5,0.5) noise to the numerators (to remove division artifacts)')
   parser.add_argument('--seed', default=1, type=int, help='Seed for random noise')
-  parser.add_argument('--colormap', default='viridis', type=str)
-  parser.add_argument('--dpi', default=None, type=int)
-  parser.add_argument('--year', default=2018, type=int)
+  parser.add_argument('--colormap', default='viridis', type=str, help='Matplotlib colormap for the heat map')
+  parser.add_argument('--dpi', default=None, type=int, help='Resolution of the output image')
   args = parser.parse_args()
 
   np.random.seed(args.seed)
