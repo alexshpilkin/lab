@@ -2,10 +2,7 @@
 
 import argparse
 import numpy as np
-import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
-import election_data
 
 # Settings used in our papers:
 # * AOAS-2016:         binwidth=0.1,  addNoise=False, weights='voters', minsize = 0
@@ -104,6 +101,10 @@ def plot(title, wlbl, centers, h, cmap='viridis'):
 
 
 if __name__ == '__main__':
+  import matplotlib
+  matplotlib.use('Agg')
+  import election_data
+   
   parser = argparse.ArgumentParser()
   parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
   parser.add_argument('--npz', default=None, help='Data file to use, in NPZ format')
