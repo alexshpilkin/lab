@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 
-import argparse
 import numpy as np
-import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import os.path
-
-import election_data
 
 def rlencode(inarray):  # Run-length encoding, <https://stackoverflow.com/a/32681075>
 	ia = np.asarray(inarray)
@@ -55,7 +50,13 @@ def plot(D, region):
 	plt.ylim(0, 100)
 
 if __name__ == '__main__':
-	from sys import stderr
+	import os
+	import sys
+	import argparse
+	import matplotlib
+	matplotlib.use('Agg')
+	
+	import election_data
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
