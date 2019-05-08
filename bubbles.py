@@ -8,16 +8,36 @@ import os.path
 
 import election_data
 
+def rlencode(inarray):  # Run-length encoding, <https://stackoverflow.com/a/32681075>
+	ia = np.asarray(inarray)
+	n = len(ia)
+	if n == 0: 
+		return (None, None, None)
+	else:
+		y = np.array(ia[1:] != ia[:-1])     # pairwise unequal (string safe)
+		i = np.append(np.where(y), n - 1)   # must include last element posi
+		z = np.diff(np.append(-1, i))       # run lengths
+		p = np.cumsum(np.append(0, z))[:-1] # positions
+		return (z, p, ia[i])
+
 def plot(D, region):
 	idx = D.region == region
-	plt.figure(figsize=(9,6))
+	tlen, tpos, terr = rlencode(D.territory[idx])
+	tsum = np.insert(np.cumsum(tlen), 0, 0)
+	assert np.unique(terr).shape == terr.shape
+
+	plt.figure(figsize=(12,4))
 	plt.scatter(np.arange(np.count_nonzero(idx)),
 	            100 * D.leader[idx] / D.ballots_valid_invalid[idx],
 	            s=D.voters_registered[idx] / np.quantile(D.voters_registered, 0.5) * 20,
 	            alpha=0.5)
 	plt.title(election_data.translit(region))
+
 	plt.xlabel('Precinct')
+	for x in tsum:
+		plt.axvline(x, 0, 1, color='black', alpha=0.25, linewidth=1)
 	plt.xticks([])
+
 	plt.ylabel('Leader’s result')
 	plt.ylim(0, 100)
 
