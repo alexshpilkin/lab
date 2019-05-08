@@ -16,3 +16,5 @@ https://habr.com/ru/post/352424/
 https://cikinfo.modos189.ru
 
 https://habr.com/en/post/354020/
+
+https://corbulon.livejournal.com/175917.html
