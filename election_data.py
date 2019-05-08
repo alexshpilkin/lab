@@ -10,14 +10,15 @@ TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
             'ABVGDEËŽZIJKLMNOPRSTUFHCČŠŜ"Y\'ÈÛÂ'
             'abvgdeëžzijklmnoprstufhcčšŝ"y\'èûâ')  # ISO 9:1995
 TRANSLIT = {ord(a): ord(b) for a, b in zip(*TRANSLIT)}
-COLUMNS = ('leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'regions')
+COLUMNS = ('leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'region', 'territory', 'precinct')
 
 def translit(s):
   return s.translate(TRANSLIT)
 
 def toident(s):
   s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
-  return s.lower().replace(' ', '_').replace(',', '').replace('.', '').replace('"', '').replace("'", '')
+  return (s.lower().replace(' ', '_').replace(',', '').replace('.', '')
+           .replace('"', '').replace("'", '').replace('(', '').replace(')', ''))
 
 def urlopen(url):
   if re.fullmatch(r'[A-Za-z0-9.+-]+://.*', url):  # RFC 3986
@@ -39,6 +40,7 @@ def loadnpz(url, year):
   voters_registered = np.squeeze(table[flt({'Число избирателей, включенных', 'Число избирателей, внесенных'})[0]])
   voters_voted = np.sum(np.vstack([table[c] for c in flt({'бюллетеней, выданных'})]).T, axis=1)
   ballots_valid_invalid = np.sum(np.vstack([table[c] for c in flt({'действительных', 'недействительных'}, {'отметок'})]).T, axis=1)
-  regions = table['region']
-  return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, regions], names=COLUMNS)
-
+  region    = table['region']
+  territory = table['tik']
+  precinct  = table['uik']
+  return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, region, territory, precinct], names=COLUMNS)

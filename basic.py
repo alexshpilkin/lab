@@ -23,7 +23,7 @@ def histogram(D, binwidth, weights='voters', minsize=0, noise=False):
     'leader': (D.leader, 'ballots for leader'),
     'ones':   (np.ones(D.voters_registered.shape), 'polling stations'),
   }.get(weights)
-  ind = (D.ballots_valid_invalid > 0) & (D.voters_voted < D.voters_registered) & (D.voters_registered >= minsize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in D.regions])
+  ind = (D.ballots_valid_invalid > 0) & (D.voters_voted < D.voters_registered) & (D.voters_registered >= minsize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in D.region])
   noise1 = np.zeros(np.sum(ind)) if not noise else np.random.rand(np.sum(ind)) - .5
   noise2 = np.zeros(np.sum(ind)) if not noise else np.random.rand(np.sum(ind)) - .5
   h = np.histogram2d(100 * (D.voters_voted[ind] + noise1) / D.voters_registered[ind],
