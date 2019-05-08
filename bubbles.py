@@ -58,11 +58,15 @@ if __name__ == '__main__':
 	from sys import stderr
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--npz', default='https://github.com/schitaytesami/lab/releases/download/data/data.npz', help='Data file to use')
-	parser.add_argument('--year', default=2018, type=int, help='Election year to use')
+	parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
+	parser.add_argument('--npz', default=None, help='Data file to use, in NPZ format')
+	parser.add_argument('--year', default=2018, type=int, help='Election year to use from NPZ file')
 	args = parser.parse_args()
 
-	D = election_data.loadnpz(args.npz, args.year)
+	if args.npz is not None:
+		D = election_data.loadnpz(args.npz, args.year)
+	else:
+		D = election_data.loadtsv(args.tsv)
 	try:
 		os.mkdir('bubbles')
 	except FileExistsError:

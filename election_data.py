@@ -1,9 +1,17 @@
-#import json
+import csv
+import gzip
 import io
 import re
 import unicodedata
 import urllib.request
 import numpy as np
+
+# https://www.iana.org/assignments/media-types/text/tab-separated-values
+class ietf_tab(csv.Dialect):
+	delimiter = '\t'
+	lineterminator = '\n'  # use universal newlines
+	quoting = csv.QUOTE_NONE
+csv.register_dialect('ietf-tab', ietf_tab)
 
 TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
             'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
@@ -20,16 +28,49 @@ def toident(s):
   return (s.lower().replace(' ', '_').replace(',', '').replace('.', '')
            .replace('"', '').replace("'", '').replace('(', '').replace(')', ''))
 
-def urlopen(url):
-  if re.fullmatch(r'[A-Za-z0-9.+-]+://.*', url):  # RFC 3986
-    return urllib.request.urlopen(url)
+def urlopen(fileorurl):
+  if isinstance(fileorurl, io.BufferedIOBase):
+    return io.BufferedReader(fileorurl)
+  elif re.fullmatch(r'[A-Za-z0-9.+-]+://.*', fileorurl):  # RFC 3986
+    return urllib.request.urlopen(fileorurl)
   else:
-    return open(url, 'rb')
+    return open(fileorurl, 'rb')
 
-def loadnpz(url, year):
-  with urlopen(url) as file:
+def loadnpz(fileorurl, year):
+  with urlopen(fileorurl) as file:
     table = np.load(io.BytesIO(file.read()))['_' + str(year)]
+  return load(table)
 
+def loadtsv(fileorurl):
+  with urlopen(fileorurl) as file:
+    if file.peek(1)[:1] == b'\x1f':  # gzip magic
+      file = gzip.GzipFile(fileobj=file)
+    rd = csv.DictReader(io.TextIOWrapper(file, newline='\r\n'), dialect='ietf-tab')
+    it = iter(rd)
+    first = next(it)
+
+    types = []
+    for name, value in zip(rd.fieldnames, first.values()):
+      if value.isdigit():
+        type = '<i4'
+      elif value.replace('.', '', 1).isdigit():
+        type = '<f8'
+      else:
+        type = '<U127'
+      types.append((toident(name), type))
+
+    table = np.array([tuple(first.values())], dtype=types)
+    i = 1
+    for row in it:
+      if i >= len(table):
+        table.resize(2*len(table))
+      table[i] = tuple(row.values())
+      i += 1
+    table.resize(i)
+
+    return load(table)
+
+def load(table):
   def flt(include, exclude=()):
     return [col
             for col in table.dtype.names
