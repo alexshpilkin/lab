@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -101,6 +100,7 @@ def plot(title, wlbl, centers, h, cmap='viridis'):
 
 
 if __name__ == '__main__':
+  import argparse
   import matplotlib
   matplotlib.use('Agg')
   import election_data
