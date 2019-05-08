@@ -1,72 +1,33 @@
 #!/usr/bin/env python3
 
 import argparse
-import json
-import io
-import re
-import unicodedata
 import urllib.request
 import numpy as np
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
-            'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
-            'ABVGDEËŽZIJKLMNOPRSTUFHCČŠŜ"Y\'ÈÛÂ'
-            'abvgdeëžzijklmnoprstufhcčšŝ"y\'èûâ')  # ISO 9:1995
-TRANSLIT = {ord(a): ord(b) for a, b in zip(*TRANSLIT)}
-COLUMNS = ('leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'regions')
-
-def translit(s):
-  return s.translate(TRANSLIT)
-
-def toident(s):
-  s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
-  return s.lower().replace(' ', '_').replace(',', '').replace('.', '').replace('"', '').replace("'", '')
-
-def urlopen(url):
-  if re.fullmatch(r'[A-Za-z0-9.+-]+://.*', url):  # RFC 3986
-    return urllib.request.urlopen(url)
-  else:
-    return open(url, 'rb')
-
-def loadnpz(url, year):
-  with urlopen(url) as file:
-    table = np.load(io.BytesIO(file.read()))['_' + str(year)]
-
-  def flt(include, exclude=()):
-    return [col
-            for col in table.dtype.names
-            if any(toident(f) in col for f in include) and
-               all(toident(f) not in col for f in exclude)]
-
-  leader = np.squeeze(table[flt({'Путин', 'Единая Россия', 'Медведев'})[0]])
-  voters_registered = np.squeeze(table[flt({'Число избирателей, включенных', 'Число избирателей, внесенных'})[0]])
-  voters_voted = np.sum(np.vstack([table[c] for c in flt({'бюллетеней, выданных'})]).T, axis=1)
-  ballots_valid_invalid = np.sum(np.vstack([table[c] for c in flt({'действительных', 'недействительных'}, {'отметок'})]).T, axis=1)
-  regions = table['region']
-  return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, regions], names=COLUMNS)
+import election_data
 
 # Settings used in our papers:
 # * AOAS-2016:         binwidth=0.1,  addNoise=False, weights='voters', minsize = 0
 # * Significance-2016: binwidth=0.25, addNoise=True,  weights='ones',   minsize = 0
 # * Significance-2018: binwidth=0.1,  addNoise=True,  weights='ones',   minsize = 0
 
-def histogram(data, binwidth, weights='voters', minsize=0, noise=False):
+def histogram(D, binwidth, weights='voters', minsize=0, noise=False):
   edges = np.arange(-binwidth/2, 100 + binwidth/2, binwidth)
   centers = np.arange(0, 100, binwidth)
 
   wval, wlbl = {
-    'voters': (data.voters_registered, 'voters registered'),
-    'given':  (data.voters_voted, 'ballots given'),
-    'leader': (data.leader, 'ballots for leader'),
-    'ones':   (np.ones(data.voters_registered.shape), 'polling stations'),
+    'voters': (D.voters_registered, 'voters registered'),
+    'given':  (D.voters_voted, 'ballots given'),
+    'leader': (D.leader, 'ballots for leader'),
+    'ones':   (np.ones(D.voters_registered.shape), 'polling stations'),
   }.get(weights)
-  ind = (data.ballots_valid_invalid > 0) & (data.voters_voted < data.voters_registered) & (data.voters_registered >= minsize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in data.regions])
+  ind = (D.ballots_valid_invalid > 0) & (D.voters_voted < D.voters_registered) & (D.voters_registered >= minsize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in D.regions])
   noise1 = np.zeros(np.sum(ind)) if not noise else np.random.rand(np.sum(ind)) - .5
   noise2 = np.zeros(np.sum(ind)) if not noise else np.random.rand(np.sum(ind)) - .5
-  h = np.histogram2d(100 * (data.voters_voted[ind] + noise1) / data.voters_registered[ind],
-                     100 * (data.leader[ind] + noise2) / data.ballots_valid_invalid[ind],
+  h = np.histogram2d(100 * (D.voters_voted[ind] + noise1) / D.voters_registered[ind],
+                     100 * (D.leader[ind] + noise2) / D.ballots_valid_invalid[ind],
                      bins=edges, weights=wval[ind])[0]
   return wlbl, centers, h
 
@@ -153,12 +114,12 @@ if __name__ == '__main__':
   parser.add_argument('--seed', default=1, type=int, help='Seed for random noise')
   parser.add_argument('--colormap', default='viridis', type=str)
   parser.add_argument('--dpi', default=None, type=int)
+  parser.add_argument('--year', default=2018, type=int)
   args = parser.parse_args()
 
-  year = 2018
   np.random.seed(args.seed)
-  D = loadnpz(args.npz, year)
+  D = election_data.loadnpz(args.npz, args.year)
   wlbl, centers, h = histogram(D, args.bin_width, weights=args.weights, minsize=args.min_size, noise=args.noise)
-  plot(f'Russian election {year}', wlbl, centers, h, cmap=args.colormap)
+  plot(f'Russian election {args.year}', wlbl, centers, h, cmap=args.colormap)
   plt.savefig('basic.png', bbox_inches='tight', dpi=args.dpi)
   plt.close()
