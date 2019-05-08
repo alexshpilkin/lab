@@ -105,8 +105,9 @@ def plot(title, wlbl, centers, h, cmap='viridis'):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--npz', default='https://github.com/schitaytesami/lab/releases/download/data/data.npz', help='Data file to use')
-  parser.add_argument('--year', default=2018, type=int, help='Election year to use')
+  parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
+  parser.add_argument('--npz', default=None, help='Data file to use, in NPZ format')
+  parser.add_argument('--year', default=2018, type=int, help='Election year to use from NPZ file')
   parser.add_argument('--bin-width', default=0.25, type=float, help='Bin width in percentage points')
   parser.add_argument('--weights', default='voters', choices={'voters', 'given', 'leader', 'ones'}, help="'ones' (counts polling stations), 'voters'  (counts registered voters), 'given' (counts ballots given), or 'leader' (counts ballots for the leader)")
   parser.add_argument('--min-size', default=0, type=int, help='Minimum precinct size to include')
@@ -117,7 +118,10 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   np.random.seed(args.seed)
-  D = election_data.loadnpz(args.npz, args.year)
+  if args.npz is not None:
+    D = election_data.loadnpz(args.npz, args.year)
+  else:
+    D = election_data.loadtsv(args.tsv)
   wlbl, centers, h = histogram(D, args.bin_width, weights=args.weights, minsize=args.min_size, noise=args.noise)
   plot(f'Russian election {args.year}', wlbl, centers, h, cmap=args.colormap)
   plt.savefig('basic.png', bbox_inches='tight', dpi=args.dpi)
