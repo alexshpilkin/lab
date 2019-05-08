@@ -3,6 +3,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+import election_data
+
 def rlencode(inarray):  # Run-length encoding, <https://stackoverflow.com/a/32681075>
 	ia = np.asarray(inarray)
 	n = len(ia)
@@ -15,7 +17,7 @@ def rlencode(inarray):  # Run-length encoding, <https://stackoverflow.com/a/3268
 		p = np.cumsum(np.append(0, z))[:-1] # positions
 		return (z, p, ia[i])
 
-def plot(D, region, plot_title):
+def plot(D, region):
 	idx = D.region == region
 	tlen, tidx, terr = rlencode(D.territory[idx])
 	tsum = np.insert(np.cumsum(tlen), 0, 0)
@@ -26,7 +28,7 @@ def plot(D, region, plot_title):
 	            100 * D.leader[idx] / D.ballots_valid_invalid[idx],
 	            s=D.voters_registered[idx] / np.quantile(D.voters_registered, 0.5) * 20,
 	            alpha=0.5)
-	plt.title(plot_title + '\n', size=20)
+	plt.title(election_data.translit(region) + '\n', size=20)
 
 	plt.xlabel('Precinct')
 	for x in tsum:
@@ -74,6 +76,6 @@ if __name__ == '__main__':
 	for region in np.unique(D.region):
 		name = election_data.toident(region)
 		print(region, file=sys.stderr, flush=True)
-		plot(D, region, election_data.translit(region))
+		plot(D, region)
 		plt.savefig(os.path.join('bubbles', name + '.png'), bbox_inches='tight')
 		plt.close()
