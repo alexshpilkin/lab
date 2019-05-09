@@ -82,6 +82,6 @@ def load(table):
   voters_voted = np.sum(np.vstack([table[c] for c in flt({'бюллетеней, выданных'})]).T, axis=1)
   ballots_valid_invalid = np.sum(np.vstack([table[c] for c in flt({'действительных', 'недействительных'}, {'отметок'})]).T, axis=1)
   region    = table['region']
-  territory = table['tik']
+  territory = np.chararray.replace(table['tik'], 'Территориальная избирательная комиссия', 'ТИК')
   precinct  = table['uik']
   return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, region, territory, precinct], names=COLUMNS)
