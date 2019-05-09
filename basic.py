@@ -37,10 +37,10 @@ def plot(title, wlbl, centers, h, cmap='viridis'):
     ylog, yfac = ylog+1, yfac*10
   ylog, yfac = ylog-1, yfac//10
 
-  size, aspect, spacing = 9.0, 3, 0.15
+  aspect, spacing = 3, 0.15
 
-  fig, axs = plt.subplots(2, 2, sharex='col', sharey='row', figsize=[size, size], gridspec_kw=dict(width_ratios=[aspect, 1], wspace=spacing, height_ratios=[1, aspect], hspace=spacing))
-  fig.suptitle(title, size=20, y=0.925, va='baseline')
+  plt.suptitle(title, size=20, y=0.925, va='baseline')
+  axs = plt.gcf().subplots(2, 2, sharex='col', sharey='row', gridspec_kw=dict(width_ratios=[aspect, 1], wspace=spacing, height_ratios=[1, aspect], hspace=spacing))
 
   ax = axs[0,1]
   ax.text(0.5, 0.5, f'$\\times 10^{{{ylog}}}$ {wlbl}\nin ${binwidth}\\,\\%$ bin', wrap=True, ha='center', va='center', transform=ax.transAxes)  # the \n is a hack to force good wrapping
@@ -123,6 +123,7 @@ if __name__ == '__main__':
     D = election_data.loadnpz(args.npz, args.year)
   else:
     D = election_data.loadtsv(args.tsv)
+  plt.figure(figsize=[9.0, 9.0])
   wlbl, centers, h = histogram(D, args.bin_width, weights=args.weights, minsize=args.min_size, noise=args.noise)
   plot(f'Russian election {args.year}', wlbl, centers, h, cmap=args.colormap)
   plt.savefig('basic.png', bbox_inches='tight', dpi=args.dpi)
