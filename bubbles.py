@@ -23,7 +23,6 @@ def plot(D, region):
 	tsum = np.insert(np.cumsum(tlen), 0, 0)
 	assert np.unique(terr).shape == terr.shape
 
-	plt.figure(figsize=(12,4))
 	plt.scatter(np.arange(np.count_nonzero(idx)),
 	            100 * D.leader[idx] / D.ballots_valid_invalid[idx],
 	            s=D.voters_registered[idx] / np.quantile(D.voters_registered, 0.5) * 20,
@@ -76,6 +75,7 @@ if __name__ == '__main__':
 	for region in np.unique(D.region):
 		name = election_data.toident(region)
 		print(region, file=sys.stderr, flush=True)
+		plt.figure(figsize=(12,4))
 		plot(D, region)
 		plt.savefig(os.path.join('bubbles', name + '.png'), bbox_inches='tight')
 		plt.close()
