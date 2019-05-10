@@ -109,7 +109,7 @@ if __name__ == '__main__':
    
   parser = argparse.ArgumentParser()
   parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
-  parser.add_argument('--npy', default=None, help='Data file to use, in NPY format')
+  parser.add_argument('--np', default=None, help='Data file to use, in NPY or NPZ format')
   parser.add_argument('--bin-width', default=0.25, type=float, help='Bin width in percentage points')
   parser.add_argument('--weights', default='voters', choices={'voters', 'given', 'leader', 'ones'}, help="'ones' (counts polling stations), 'voters'  (counts registered voters), 'given' (counts ballots given), or 'leader' (counts ballots for the leader)")
   parser.add_argument('--min-size', default=0, type=int, help='Minimum precinct size to include')
@@ -118,8 +118,8 @@ if __name__ == '__main__':
   parser.add_argument('--dpi', default=None, type=int, help='Resolution of the output image')
   args = parser.parse_args()
 
-  data_path = args.npy or args.tsv
-  D = election_data.load_election_data(data_path, npy = args.npy is not None)
+  data_path = args.np or args.tsv
+  D = election_data.load_election_data(data_path, np = args.np is not None)
 
   plt.figure(figsize=[9.0, 9.0])
   wlbl, centers, h = histogram(D, args.bin_width, weights=args.weights, minsize=args.min_size, noise=args.noise)
