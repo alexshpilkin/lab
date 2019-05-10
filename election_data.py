@@ -41,6 +41,8 @@ def load_election_data(fileorurl, numpy = False, latin = False):
 	if numpy:
 		with urlopen(fileorurl) as file:
 			table = np.load(io.BytesIO(file.read()))
+			if isinstance(table, np.lib.npyio.NpzFile):
+				table = table['arr_0']
 	else:
 		with urlopen(fileorurl) as file:
 			if file.peek(1)[:1] == b'\x1f':	# gzip magic
