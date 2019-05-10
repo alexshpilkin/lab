@@ -3,6 +3,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+import election_data
+
 # Settings used in our papers:
 # * AOAS-2016:         binwidth=0.1,  addNoise=False, weights='voters', minsize = 0
 # * Significance-2016: binwidth=0.25, addNoise=True,  weights='ones',   minsize = 0
@@ -12,6 +14,8 @@ def histogram(D, binwidth, weights='voters', minsize=0, noise=False, seed=1):
   rnd = np.random.RandomState(seed)
   edges = np.arange(-binwidth/2, 100 + binwidth/2, binwidth)
   centers = np.arange(0, 100, binwidth)
+  
+  D = election_data.filter(D, ballots_valid_invalid_min=1, voters_registered_min=minsize, voters_voted_le_voters_registered=True, foreign=False)
 
   wval, wlbl = {
     'voters': (D.voters_registered, 'voters registered'),
@@ -19,12 +23,11 @@ def histogram(D, binwidth, weights='voters', minsize=0, noise=False, seed=1):
     'leader': (D.leader, 'ballots for leader'),
     'ones':   (np.ones(D.voters_registered.shape), 'polling stations'),
   }.get(weights)
-  ind = (D.ballots_valid_invalid > 0) & (D.voters_voted < D.voters_registered) & (D.voters_registered >= minsize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in D.region])
-  noise1 = np.zeros(np.sum(ind)) if not noise else rnd.rand(np.sum(ind)) - .5
-  noise2 = np.zeros(np.sum(ind)) if not noise else rnd.rand(np.sum(ind)) - .5
-  h = np.histogram2d(100 * (D.voters_voted[ind] + noise1) / D.voters_registered[ind],
-                     100 * (D.leader[ind] + noise2) / D.ballots_valid_invalid[ind],
-                     bins=edges, weights=wval[ind])[0]
+  noise1 = np.zeros(len(D)) if not noise else rnd.rand(len(D)) - .5
+  noise2 = np.zeros(len(D)) if not noise else rnd.rand(len(D)) - .5
+  h = np.histogram2d(100 * (D.voters_voted + noise1) / D.voters_registered,
+                     100 * (D.leader + noise2) / D.ballots_valid_invalid,
+                     bins=edges, weights=wval)[0]
   return wlbl, centers, h
 
 def plot(title, wlbl, centers, h, cmap='viridis'):
@@ -105,7 +108,6 @@ if __name__ == '__main__':
   import argparse
   import matplotlib
   matplotlib.use('Agg')
-  import election_data
    
   parser = argparse.ArgumentParser()
   parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
@@ -119,7 +121,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   data_path = args.numpy or args.tsv
-  D = election_data.load_election_data(data_path, numpy = args.numpy is not None)
+  D = election_data.load(data_path, numpy = args.numpy is not None)
 
   plt.figure(figsize=[9.0, 9.0])
   wlbl, centers, h = histogram(D, args.bin_width, weights=args.weights, minsize=args.min_size, noise=args.noise)

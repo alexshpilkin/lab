@@ -55,7 +55,6 @@ if __name__ == '__main__':
 	import argparse
 	import matplotlib
 	matplotlib.use('Agg')
-	import election_data
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
@@ -64,7 +63,7 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 
 	data_path = args.numpy or args.tsv
-	D = election_data.load_election_data(data_path, numpy = args.numpy is not None)
+	D = election_data.load(data_path, numpy = args.numpy is not None)
 
 	if not os.path.exists(args.o):
 		os.mkdir(args.o)

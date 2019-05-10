@@ -1,12 +1,11 @@
 import csv
 import gzip
 import io
-import re
 import unicodedata
 import urllib.request
 import numpy as np
 
-COLUMNS = ('leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'region', 'territory', 'precinct')
+COLUMNS = ('leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'region', 'territory', 'precinct', 'foreign')
 
 TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
 	'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
@@ -19,14 +18,13 @@ def translit(s):
 
 def toident(s):
 	s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
-	return (s.lower().replace(' ', '_').replace(',', '').replace('.', '')
-					 .replace('"', '').replace("'", '').replace('(', '').replace(')', ''))
+	return s.lower().replace(' ', '_').translate({ord(c) : None for c in ''',."'()'''})
 
-def load_election_data(fileorurl, numpy = False, latin = False):
+def load(fileorurl, numpy = False, latin = False):
 	def urlopen(fileorurl):
 		if isinstance(fileorurl, io.BufferedIOBase):
 			return io.BufferedReader(fileorurl)
-		elif re.fullmatch(r'[A-Za-z0-9.+-]+://.*', fileorurl):	# RFC 3986
+		elif fileorurl.startswith('http'):
 			return urllib.request.urlopen(fileorurl)
 		else:
 			return open(fileorurl, 'rb')
@@ -35,7 +33,7 @@ def load_election_data(fileorurl, numpy = False, latin = False):
 		return [col
 				for col in table.dtype.names
 				if any(toident(f) in col for f in include) and
-				 all(toident(f) not in col for f in exclude)]
+				not any(toident(f) in col for f in exclude)]
 
 
 	if numpy:
@@ -65,4 +63,25 @@ def load_election_data(fileorurl, numpy = False, latin = False):
 	region		= table['region']
 	territory = np.chararray.replace(table['tik'], 'Территориальная избирательная комиссия', 'ТИК')
 	precinct	= table['uik']
-	return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, region, territory, precinct], names=COLUMNS)
+	foreign = np.array(['Зарубеж' not in s and 'за пределами' not in s for s in region])
+	return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, region, territory, precinct, foreign], names=COLUMNS)
+
+def filter(D, region = None, voters_registered_min = None, voters_voted_le_voters_registered = False, foreign = None, ballots_valid_invalid_min = None):
+	idx = np.full(len(D), True)
+
+	if region is not None:
+		idx &= D.region == region
+
+	if voters_registered_min is not None:
+		idx &= D.voters_registered >= voters_registered_min
+	
+	if ballots_valid_invalid_min is not None:
+		idx &= D.ballots_valid_invalid >= ballots_valid_invalid_min
+
+	if voters_voted_le_voters_registered:
+		idx &= D.voters_voted <= D.voters_registered
+
+	if foreign is not None:
+		idx &= D.foreign == foreign
+
+	return D[idx]
