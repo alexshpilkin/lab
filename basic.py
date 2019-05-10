@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 # * Significance-2016: binwidth=0.25, addNoise=True,  weights='ones',   minsize = 0
 # * Significance-2018: binwidth=0.1,  addNoise=True,  weights='ones',   minsize = 0
 
-def histogram(D, binwidth, weights='voters', minsize=0, noise=False):
+def histogram(D, binwidth, weights='voters', minsize=0, noise=False, seed=1):
+  rnd = np.random.RandomState(seed)
   edges = np.arange(-binwidth/2, 100 + binwidth/2, binwidth)
   centers = np.arange(0, 100, binwidth)
 
@@ -19,8 +20,8 @@ def histogram(D, binwidth, weights='voters', minsize=0, noise=False):
     'ones':   (np.ones(D.voters_registered.shape), 'polling stations'),
   }.get(weights)
   ind = (D.ballots_valid_invalid > 0) & (D.voters_voted < D.voters_registered) & (D.voters_registered >= minsize) & np.array(['Зарубеж' not in s and 'за пределами' not in s for s in D.region])
-  noise1 = np.zeros(np.sum(ind)) if not noise else np.random.rand(np.sum(ind)) - .5
-  noise2 = np.zeros(np.sum(ind)) if not noise else np.random.rand(np.sum(ind)) - .5
+  noise1 = np.zeros(np.sum(ind)) if not noise else rnd.rand(np.sum(ind)) - .5
+  noise2 = np.zeros(np.sum(ind)) if not noise else rnd.rand(np.sum(ind)) - .5
   h = np.histogram2d(100 * (D.voters_voted[ind] + noise1) / D.voters_registered[ind],
                      100 * (D.leader[ind] + noise2) / D.ballots_valid_invalid[ind],
                      bins=edges, weights=wval[ind])[0]
@@ -100,6 +101,7 @@ def plot(title, wlbl, centers, h, cmap='viridis'):
 
 
 if __name__ == '__main__':
+  import os
   import argparse
   import matplotlib
   matplotlib.use('Agg')
@@ -107,24 +109,20 @@ if __name__ == '__main__':
    
   parser = argparse.ArgumentParser()
   parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
-  parser.add_argument('--npz', default=None, help='Data file to use, in NPZ format')
-  parser.add_argument('--year', default=2018, type=int, help='Election year to use from NPZ file')
+  parser.add_argument('--npy', default=None, help='Data file to use, in NPY format')
   parser.add_argument('--bin-width', default=0.25, type=float, help='Bin width in percentage points')
   parser.add_argument('--weights', default='voters', choices={'voters', 'given', 'leader', 'ones'}, help="'ones' (counts polling stations), 'voters'  (counts registered voters), 'given' (counts ballots given), or 'leader' (counts ballots for the leader)")
   parser.add_argument('--min-size', default=0, type=int, help='Minimum precinct size to include')
   parser.add_argument('--noise', action='store_true', help='Add U(-0.5,0.5) noise to the numerators (to remove division artifacts)')
-  parser.add_argument('--seed', default=1, type=int, help='Seed for random noise')
   parser.add_argument('--colormap', default='viridis', type=str, help='Matplotlib colormap for the heat map')
   parser.add_argument('--dpi', default=None, type=int, help='Resolution of the output image')
   args = parser.parse_args()
 
-  np.random.seed(args.seed)
-  if args.npz is not None:
-    D = election_data.loadnpz(args.npz, args.year)
-  else:
-    D = election_data.loadtsv(args.tsv)
+  data_path = args.npy or args.tsv
+  D = election_data.load_election_data(data_path, npy = args.npy is not None)
+
   plt.figure(figsize=[9.0, 9.0])
   wlbl, centers, h = histogram(D, args.bin_width, weights=args.weights, minsize=args.min_size, noise=args.noise)
-  plot(f'Russian election {args.year}', wlbl, centers, h, cmap=args.colormap)
+  plot(os.path.basename(data_path), wlbl, centers, h, cmap=args.colormap)
   plt.savefig('basic.png', bbox_inches='tight', dpi=args.dpi)
   plt.close()

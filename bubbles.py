@@ -52,7 +52,6 @@ def plot(D, region):
 
 if __name__ == '__main__':
 	import os
-	import sys
 	import argparse
 	import matplotlib
 	matplotlib.use('Agg')
@@ -60,22 +59,19 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
-	parser.add_argument('--npz', default=None, help='Data file to use, in NPZ format')
-	parser.add_argument('--year', default=2018, type=int, help='Election year to use from NPZ file')
+	parser.add_argument('--npy', default=None, help='Data file to use, in NPY format')
+	parser.add_argument('-o', default = 'bubbles', help = 'Output directory')
 	args = parser.parse_args()
 
-	if args.npz is not None:
-		D = election_data.loadnpz(args.npz, args.year)
-	else:
-		D = election_data.loadtsv(args.tsv)
-	try:
-		os.mkdir('bubbles')
-	except FileExistsError:
-		pass
+	D = election_data.load_election_data(args.npy or args.tsv, npy = args.npy is not None)
+
+	if not os.path.exists(args.o):
+		os.mkdir(args.o)
+
 	for region in np.unique(D.region):
 		name = election_data.toident(region)
-		print(region, file=sys.stderr, flush=True)
+		print(region, flush=True)
 		plt.figure(figsize=(12,4))
 		plot(D, region)
-		plt.savefig(os.path.join('bubbles', name + '.png'), bbox_inches='tight')
+		plt.savefig(os.path.join(args.o, name + '.png'), bbox_inches='tight')
 		plt.close()
