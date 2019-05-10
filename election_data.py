@@ -63,7 +63,7 @@ def load(fileorurl, numpy = False, latin = False):
 	region		= table['region']
 	territory = np.chararray.replace(table['tik'], 'Территориальная избирательная комиссия', 'ТИК')
 	precinct	= table['uik']
-	foreign = np.array(['Зарубеж' not in s and 'за пределами' not in s for s in region])
+	foreign = np.array(['Зарубеж' in s or 'за пределами' in s for s in region])
 	return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, region, territory, precinct, foreign], names=COLUMNS)
 
 def filter(D, region = None, voters_registered_min = None, voters_voted_le_voters_registered = False, foreign = None, ballots_valid_invalid_min = None):
