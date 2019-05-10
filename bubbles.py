@@ -17,7 +17,7 @@ def rlencode(inarray):  # Run-length encoding, <https://stackoverflow.com/a/3268
 		p = np.cumsum(np.append(0, z))[:-1] # positions
 		return (z, p, ia[i])
 
-def plot(D, region):
+def plot(D, region, voters_registered_median = 1000):
 	idx = D.region == region
 	tlen, tidx, terr = rlencode(D.territory[idx])
 	tsum = np.insert(np.cumsum(tlen), 0, 0)
@@ -25,7 +25,7 @@ def plot(D, region):
 
 	plt.scatter(np.arange(np.count_nonzero(idx)),
 	            100 * D.leader[idx] / D.ballots_valid_invalid[idx],
-	            s=D.voters_registered[idx] / np.quantile(D.voters_registered, 0.5) * 20,
+	            s=D.voters_registered[idx] / voters_registered_median * 20,
 	            alpha=0.5)
 	plt.title(election_data.translit(region) + '\n', size=20)
 
