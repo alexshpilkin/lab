@@ -59,11 +59,12 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
-	parser.add_argument('--np', default=None, help='Data file to use, in NPY format')
+	parser.add_argument('--numpy', default=None, help='Data file to use, in NPY format')
 	parser.add_argument('-o', default = 'bubbles', help = 'Output directory')
 	args = parser.parse_args()
 
-	D = election_data.load_election_data(args.np or args.tsv, np = args.np is not None)
+	data_path = args.numpy or args.tsv
+	D = election_data.load_election_data(data_path, numpy = args.numpy is not None)
 
 	if not os.path.exists(args.o):
 		os.mkdir(args.o)

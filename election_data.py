@@ -22,7 +22,7 @@ def toident(s):
 	return (s.lower().replace(' ', '_').replace(',', '').replace('.', '')
 					 .replace('"', '').replace("'", '').replace('(', '').replace(')', ''))
 
-def load_election_data(fileorurl, np = False, latin = False):
+def load_election_data(fileorurl, numpy = False, latin = False):
 	def urlopen(fileorurl):
 		if isinstance(fileorurl, io.BufferedIOBase):
 			return io.BufferedReader(fileorurl)
@@ -38,7 +38,7 @@ def load_election_data(fileorurl, np = False, latin = False):
 				 all(toident(f) not in col for f in exclude)]
 
 
-	if np:
+	if numpy:
 		with urlopen(fileorurl) as file:
 			table = np.load(io.BytesIO(file.read()))
 	else:
