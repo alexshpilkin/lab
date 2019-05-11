@@ -70,7 +70,7 @@ if __name__ == '__main__':
 		print(region, flush=True)
 		plt.figure(figsize=(12,4))
 		plt.title(election_data.translit(region) + '\n', size=20)
-		plot(election_data.filter(D, region=region), region)
+		plot(election_data.filter(D, region=region))
 		plt.savefig(os.path.join(args.output, name + '.png'),
 		            bbox_inches='tight')
 		plt.close()
