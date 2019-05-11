@@ -3,6 +3,15 @@ report mode: https://definitely-staging.iodide.io/notebooks/37/?viewMode=report
 
 code: https://definitely-staging.iodide.io/notebooks/37/
 
+# todo
+- поддержка вместо результата
+- эволюция единичных участков в осях явка-время
+- все гистограммы предварительной явки на одной картинке
+- монте-карло гистограммы и просто кол-ва целочисленных участков
+- эллипс mcd
+- аномальная часть
+- разница между фактическим и ожидаемым результатом по целым значениям (fig. 3) по регионам
+
 # links
 https://github.com/smacke/subsync
 https://github.com/facebookresearch/tdfbanks
