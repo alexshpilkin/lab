@@ -17,7 +17,7 @@ def rlencode(inarray):  # Run-length encoding, <https://stackoverflow.com/a/3268
 		p = np.cumsum(np.append(0, z))[:-1] # positions
 		return (z, p, ia[i])
 
-def plot(D, region, voters_registered_median = 1000):
+def plot(D, region, unit=1000):
 	idx = D.region == region
 	tlen, tidx, terr = rlencode(D.territory[idx])
 	tsum = np.insert(np.cumsum(tlen), 0, 0)
@@ -25,7 +25,7 @@ def plot(D, region, voters_registered_median = 1000):
 
 	plt.scatter(np.arange(np.count_nonzero(idx)),
 	            100 * D.leader[idx] / D.ballots_valid_invalid[idx],
-	            s=D.voters_registered[idx] / voters_registered_median * 20,
+	            s=D.voters_registered[idx] / unit * 20,
 	            alpha=0.5)
 	plt.title(election_data.translit(region) + '\n', size=20)
 
@@ -58,12 +58,12 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
-	parser.add_argument('--numpy', default=None, help='Data file to use, in NPY format')
-	parser.add_argument('-o', default = 'bubbles', help = 'Output directory')
+	parser.add_argument('--numpy', default=None, help='Data file to use, in NPY or NPZ format')
+	parser.add_argument('-o', default='bubbles', help='Output directory')
 	args = parser.parse_args()
 
 	data_path = args.numpy or args.tsv
-	D = election_data.load(data_path, numpy = args.numpy is not None)
+	D = election_data.load(data_path, numpy=args.numpy is not None)
 
 	if not os.path.exists(args.o):
 		os.mkdir(args.o)
