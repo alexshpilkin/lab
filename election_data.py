@@ -20,7 +20,7 @@ def toident(s):
 	s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
 	return s.lower().replace(' ', '_').translate({ord(c) : None for c in ''',."'()'''})
 
-def load(fileorurl, numpy = False, latin = False):
+def load(fileorurl, numpy=False, latin=False):
 	def urlopen(fileorurl):
 		if isinstance(fileorurl, io.BufferedIOBase):
 			return io.BufferedReader(fileorurl)
@@ -45,7 +45,11 @@ def load(fileorurl, numpy = False, latin = False):
 		with urlopen(fileorurl) as file:
 			if file.peek(1)[:1] == b'\x1f':	# gzip magic
 				file = gzip.GzipFile(fileobj=file)
-			rd = csv.DictReader(io.TextIOWrapper(file, newline='\r\n'), delimiter = '\t', lineterminator = '\n', quoting = csv.QUOTE_NONE) # IETF format: https://www.iana.org/assignments/media-types/text/tab-separated-values
+			# https://www.iana.org/assignments/media-types/text/tab-separated-values
+			rd = csv.DictReader(io.TextIOWrapper(file, newline='\r\n'),
+			                    delimiter='\t',
+			                    lineterminator='\n',
+			                    quoting=csv.QUOTE_NONE)
 			it = iter(rd)
 			first = next(it)
 			types = [(toident(name), '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() else '<U127') for name, value in zip(rd.fieldnames, first.values())]
@@ -60,13 +64,13 @@ def load(fileorurl, numpy = False, latin = False):
 	voters_registered = np.squeeze(table[flt(table, {'Число избирателей, включенных', 'Число избирателей, внесенных'})[0]])
 	voters_voted = np.sum(np.vstack([table[c] for c in flt(table, {'бюллетеней, выданных'})]).T, axis=1)
 	ballots_valid_invalid = np.sum(np.vstack([table[c] for c in flt(table, {'действительных', 'недействительных'}, {'отметок'})]).T, axis=1)
-	region		= table['region']
+	region = table['region']
 	territory = np.chararray.replace(table['tik'], 'Территориальная избирательная комиссия', 'ТИК')
-	precinct	= table['uik']
+	precinct = table['uik']
 	foreign = np.array(['Зарубеж' in s or 'за пределами' in s for s in region])
 	return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, region, territory, precinct, foreign], names=COLUMNS)
 
-def filter(D, region = None, voters_registered_min = None, voters_voted_le_voters_registered = False, foreign = None, ballots_valid_invalid_min = None):
+def filter(D, region=None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
 	idx = np.full(len(D), True)
 
 	if region is not None:

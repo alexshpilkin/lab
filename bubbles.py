@@ -17,15 +17,16 @@ def rlencode(inarray):  # Run-length encoding, <https://stackoverflow.com/a/3268
 		p = np.cumsum(np.append(0, z))[:-1] # positions
 		return (z, p, ia[i])
 
-def plot(D, region, voters_registered_median = 1000):
-	idx = D.region == region
-	tlen, tidx, terr = rlencode(D.territory[idx])
+def plot(D, region, unit=1000):
+	D = election_data.filter(D, region=region)
+
+	tlen, tidx, terr = rlencode(D.territory)
 	tsum = np.insert(np.cumsum(tlen), 0, 0)
 	assert np.unique(terr).shape == terr.shape
 
-	plt.scatter(np.arange(np.count_nonzero(idx)),
-	            100 * D.leader[idx] / D.ballots_valid_invalid[idx],
-	            s=D.voters_registered[idx] / voters_registered_median * 20,
+	plt.scatter(np.arange(len(D.voters_registered)),
+	            100 * D.leader / D.ballots_valid_invalid,
+	            s=D.voters_registered / unit * 20,
 	            alpha=0.5)
 	plt.title(election_data.translit(region) + '\n', size=20)
 
@@ -33,10 +34,10 @@ def plot(D, region, voters_registered_median = 1000):
 	for x in tsum:
 		plt.axvline(x, 0, 1, color='black', alpha=0.25, linewidth=1)
 	ax1 = plt.gca()
-	ax1.set_xlim((0, np.count_nonzero(idx)))
+	ax1.set_xlim((0, len(D.voters_registered)))
 	ax1.set_xlabel('Precinct')
 	ax1.set_xticks(tsum[:-1])
-	ax1.set_xticklabels(D.precinct[idx][tidx], ha='center', rotation=90)
+	ax1.set_xticklabels(D.precinct[tidx], ha='center', rotation=90)
 	ax2 = ax1.twiny()
 	ax2.set_xlim(ax1.get_xlim())
 	ax2.set_xlabel('Territory')
@@ -58,20 +59,20 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
-	parser.add_argument('--numpy', default=None, help='Data file to use, in NPY format')
-	parser.add_argument('-o', default = 'bubbles', help = 'Output directory')
+	parser.add_argument('--npy', default=None, help='Data file to use, in NPY or NPZ format')
+	parser.add_argument('-o', '--output', default='bubbles', help='Output directory')
 	args = parser.parse_args()
 
-	data_path = args.numpy or args.tsv
-	D = election_data.load(data_path, numpy = args.numpy is not None)
+	D = election_data.load(args.npy or args.tsv, numpy=args.npy is not None)
 
-	if not os.path.exists(args.o):
-		os.mkdir(args.o)
+	if not os.path.exists(args.output):
+		os.mkdir(args.output)
 
 	for region in np.unique(D.region):
 		name = election_data.toident(region)
 		print(region, flush=True)
 		plt.figure(figsize=(12,4))
 		plot(D, region)
-		plt.savefig(os.path.join(args.o, name + '.png'), bbox_inches='tight')
+		plt.savefig(os.path.join(args.output, name + '.png'),
+		            bbox_inches='tight')
 		plt.close()
