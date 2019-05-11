@@ -116,8 +116,9 @@ if __name__ == '__main__':
   parser.add_argument('--weights', default='voters', choices={'voters', 'given', 'leader', 'ones'}, help="'ones' (counts polling stations), 'voters'  (counts registered voters), 'given' (counts ballots given), or 'leader' (counts ballots for the leader)")
   parser.add_argument('--min-size', default=0, type=int, help='Minimum precinct size to include')
   parser.add_argument('--noise', action='store_true', help='Add U(-0.5,0.5) noise to the numerators (to remove division artifacts)')
-  parser.add_argument('--colormap', default='viridis', type=str, help='Matplotlib colormap for the heat map')
+  parser.add_argument('--colormap', default='viridis', help='Matplotlib colormap for the heat map')
   parser.add_argument('--dpi', default=None, type=int, help='Resolution of the output image')
+  parser.add_argument('-o', '--output', default='basic.png', help='Output file')
   args = parser.parse_args()
 
   data_path = args.numpy or args.tsv
@@ -126,5 +127,5 @@ if __name__ == '__main__':
   plt.figure(figsize=[9.0, 9.0])
   wlbl, centers, h = histogram(D, args.bin_width, weights=args.weights, minsize=args.min_size, noise=args.noise)
   plot(os.path.basename(data_path), wlbl, centers, h, cmap=args.colormap)
-  plt.savefig('basic.png', bbox_inches='tight', dpi=args.dpi)
+  plt.savefig(args.output, bbox_inches='tight', dpi=args.dpi)
   plt.close()

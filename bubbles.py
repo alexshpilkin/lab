@@ -60,19 +60,20 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
 	parser.add_argument('--numpy', default=None, help='Data file to use, in NPY or NPZ format')
-	parser.add_argument('-o', default='bubbles', help='Output directory')
+	parser.add_argument('-o', '--output', default='bubbles', help='Output directory')
 	args = parser.parse_args()
 
 	data_path = args.numpy or args.tsv
 	D = election_data.load(data_path, numpy=args.numpy is not None)
 
-	if not os.path.exists(args.o):
-		os.mkdir(args.o)
+	if not os.path.exists(args.output):
+		os.mkdir(args.output)
 
 	for region in np.unique(D.region):
 		name = election_data.toident(region)
 		print(region, flush=True)
 		plt.figure(figsize=(12,4))
 		plot(D, region)
-		plt.savefig(os.path.join(args.o, name + '.png'), bbox_inches='tight')
+		plt.savefig(os.path.join(args.output, name + '.png'),
+		            bbox_inches='tight')
 		plt.close()
