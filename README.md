@@ -1,6 +1,7 @@
-# lab
+# Iodide notebook demo
+https://definitely-staging.iodide.io/notebooks/37/
 
-Some code:
+# links
 https://github.com/smacke/subsync
 https://github.com/facebookresearch/tdfbanks
 
