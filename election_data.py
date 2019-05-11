@@ -73,7 +73,7 @@ def load(fileorurl, numpy=False, latin=False):
 def filter(D, region=None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
 	idx = np.full(len(D), True)
 
-	if region is not None:
+	if region:
 		idx &= D.region == region
 
 	if voters_registered_min is not None:
