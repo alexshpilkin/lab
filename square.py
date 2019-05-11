@@ -118,7 +118,7 @@ if __name__ == '__main__':
   parser.add_argument('--noise', action='store_true', help='Add U(-0.5,0.5) noise to the numerators (to remove division artifacts)')
   parser.add_argument('--colormap', default='viridis', help='Matplotlib colormap for the heat map')
   parser.add_argument('--dpi', default=None, type=int, help='Resolution of the output image')
-  parser.add_argument('-o', '--output', default='basic.png', help='Output file')
+  parser.add_argument('-o', '--output', default='square.png', help='Output file')
   args = parser.parse_args()
 
   data_path = args.numpy or args.tsv
