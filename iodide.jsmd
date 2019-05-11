@@ -26,8 +26,8 @@ def render_regions(id, regions, region_changed):
 		option.value = region
 		option.innerText = region or 'Russia'
 		select.options.add(option)
-	select.onchange = region_changed
-	region_changed(None, region = regions[0])
+	select.onchange = lambda event: region_changed(event.target.value)
+	region_changed(regions[0])
 %% py
 D = election_data.load(io.BytesIO(js.data), numpy = True)
 regions = list(sorted(np.unique(D.region)))
@@ -35,12 +35,10 @@ regions = list(sorted(np.unique(D.region)))
 <h1>Voting result and turnout</h1>
 <select id="regions1" style="width:100%" />
 %% py
-def regions1_changed(event, region = None):
-	region = region if region is not None else event.target.value
+def regions1_changed(region):
 	plt.figure('square', figsize=(12, 12))
 	plt.clf()
-	H = square.histogram(election_data.filter(D, region = region), binwidth = 0.25, weights='voters', minsize=0, noise=False)
-	square.plot('Russian elections 2018', *H)
+	square.plot(region or 'Country', election_data.filter(D, region = region), binwidth = 0.25, weights='voters', minsize=0, noise=False)
 	plt.show()
 
 render_regions('regions1', [''] + regions, regions1_changed)
@@ -48,11 +46,10 @@ render_regions('regions1', [''] + regions, regions1_changed)
 <h1>Sorted voting stations</h1>
 <select id="regions2" style="width:100%" />
 %% py
-def regions2_changed(event, region = None):
-	region = region if region is not None else event.target.value
+def regions2_changed(region):
 	plt.figure('bubbles', figsize = (12, 4))
 	plt.clf()
-	bubbles.plot(election_data.filter(D, region = region))
+	bubbles.plot(region or 'Country', election_data.filter(D, region = region))
 	plt.show()
     
 render_regions('regions2', regions, regions2_changed)
