@@ -30,7 +30,8 @@ def histogram(D, binwidth, weights='voters', minsize=0, noise=False, seed=1):
                      bins=edges, weights=wval)[0]
   return wlbl, centers, h
 
-def plot(title, wlbl, centers, h, cmap='viridis'):
+def plot(title, D, cmap='viridis', **kwargs):
+  wlbl, centers, h = histogram(D, **kwargs)
   binwidth=centers[1] - centers[0]
   ht = np.sum(h, axis=1)
   hr = np.sum(h, axis=0)
@@ -125,7 +126,6 @@ if __name__ == '__main__':
   D = election_data.load(data_path, numpy=args.npy is not None)
 
   plt.figure(figsize=[9.0, 9.0])
-  wlbl, centers, h = histogram(D, args.bin_width, weights=args.weights, minsize=args.min_size, noise=args.noise)
-  plot(os.path.basename(data_path), wlbl, centers, h, cmap=args.colormap)
+  plot(os.path.basename(data_path), D, binwidth = args.bin_width, weights = args.weights, minsize = args.min_size, noise = args.noise, cmap=args.colormap)
   plt.savefig(args.output, bbox_inches='tight', dpi=args.dpi)
   plt.close()
