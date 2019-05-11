@@ -1,0 +1,58 @@
+%% fetch
+arrayBuffer: lab=https://cors-anywhere.herokuapp.com/https://github.com/schitaytesami/lab/archive/master.zip
+arrayBuffer: data=https://cors-anywhere.herokuapp.com/https://github.com/schitaytesami/lab/releases/download/data/data_2018.npz
+
+%% py
+import os, sys, io, zipfile
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+import js
+if not os.path.exists('lab-master'):
+    zipfile.ZipFile(io.BytesIO(js.lab)).extractall('.')
+    sys.path.append('lab-master')
+import election_data
+import square
+import bubbles
+
+matplotlib.rcParams['figure.dpi'] = 50
+
+def render_regions(id, regions, region_changed):
+	select = js.document.getElementById(id)
+	while len(select.options) > 0:
+		select.options.remove(0)
+	for region in regions:
+		option = js.document.createElement('option')
+		option.value = region
+		option.innerText = region or 'Russia'
+		select.options.add(option)
+	select.onchange = region_changed
+	region_changed(None, region = regions[0])
+%% py
+D = election_data.load(io.BytesIO(js.data), numpy = True)
+regions = list(sorted(np.unique(D.region)))
+%% md
+<h1>Voting result and turnout</h1>
+<select id="regions1" style="width:100%" />
+%% py
+def regions1_changed(event, region = None):
+	region = region if region is not None else event.target.value
+	plt.figure('square', figsize=(12, 12))
+	plt.clf()
+	H = square.histogram(election_data.filter(D, region = region), binwidth = 0.25, weights='voters', minsize=0, noise=False)
+	square.plot('Russian elections 2018', *H)
+	plt.show()
+
+render_regions('regions1', [''] + regions, regions1_changed)
+%% md
+<h1>Sorted voting stations</h1>
+<select id="regions2" style="width:100%" />
+%% py
+def regions2_changed(event, region = None):
+	region = region if region is not None else event.target.value
+	plt.figure('bubbles', figsize = (12, 4))
+	plt.clf()
+	bubbles.plot(election_data.filter(D, region = region))
+	plt.show()
+    
+render_regions('regions2', regions, regions2_changed)
