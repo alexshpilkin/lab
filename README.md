@@ -1,5 +1,7 @@
 # Iodide notebook demo
-https://definitely-staging.iodide.io/notebooks/37/
+report mode: https://definitely-staging.iodide.io/notebooks/37/?viewMode=report
+
+code: https://definitely-staging.iodide.io/notebooks/37/
 
 # links
 https://github.com/smacke/subsync
