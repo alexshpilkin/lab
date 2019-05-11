@@ -18,14 +18,15 @@ def rlencode(inarray):  # Run-length encoding, <https://stackoverflow.com/a/3268
 		return (z, p, ia[i])
 
 def plot(D, region, unit=1000):
-	idx = D.region == region
-	tlen, tidx, terr = rlencode(D.territory[idx])
+	D = election_data.filter(D, region=region)
+
+	tlen, tidx, terr = rlencode(D.territory)
 	tsum = np.insert(np.cumsum(tlen), 0, 0)
 	assert np.unique(terr).shape == terr.shape
 
-	plt.scatter(np.arange(np.count_nonzero(idx)),
-	            100 * D.leader[idx] / D.ballots_valid_invalid[idx],
-	            s=D.voters_registered[idx] / unit * 20,
+	plt.scatter(np.arange(len(D.voters_registered)),
+	            100 * D.leader / D.ballots_valid_invalid,
+	            s=D.voters_registered / unit * 20,
 	            alpha=0.5)
 	plt.title(election_data.translit(region) + '\n', size=20)
 
@@ -33,10 +34,10 @@ def plot(D, region, unit=1000):
 	for x in tsum:
 		plt.axvline(x, 0, 1, color='black', alpha=0.25, linewidth=1)
 	ax1 = plt.gca()
-	ax1.set_xlim((0, np.count_nonzero(idx)))
+	ax1.set_xlim((0, len(D.voters_registered)))
 	ax1.set_xlabel('Precinct')
 	ax1.set_xticks(tsum[:-1])
-	ax1.set_xticklabels(D.precinct[idx][tidx], ha='center', rotation=90)
+	ax1.set_xticklabels(D.precinct[tidx], ha='center', rotation=90)
 	ax2 = ax1.twiny()
 	ax2.set_xlim(ax1.get_xlim())
 	ax2.set_xlabel('Territory')
