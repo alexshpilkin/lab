@@ -28,6 +28,7 @@ for p in protocols:
 	tik_splitted = tik_name.split()
 	tik_num, tik_name = tik_splitted[0], ' '.join(tik_splitted[1:])
 	region_num = int(urllib.parse.parse_qs(p['url'])['region'][0])
+	region_name = tik_name
 
 	if not uik_name:
 		continue
@@ -54,6 +55,8 @@ for p in protocols:
 	station['voters_voted_outside_station'] = voters_voted_outside_station or 0
 	station['voters_voted'] = (station['voters_voted_at_station'] + station['voters_voted_early'] + station['voters_voted_outside_station']) if voters_voted_at_station is not None else None
 
+	station['foreign'] = 'Зарубеж' in region_name or 'за пределами' in region_name 
+
 	p['loc'][-1] = uik_name + ' ' + p['loc'][-1]
 	station['turnouts'] = {k.replace('.', ':') : v for k, v in ik_turnouts.get(''.join(p['loc']), dict(turnouts = {}))['turnouts'].items()} or None
 
@@ -61,13 +64,18 @@ for p in protocols:
 
 json.dump(stations, open(args.json, 'w'), ensure_ascii = False, indent = 2, sort_keys = True)
 
+T = {ord(a): ord(b) for a, b in zip(' абвгдеёжзийклмнопрстуфхцчшщъыьэюя', '_abvgdeezzijklmnoprstufhccssyyyeua')}
 turnout_kv = dict(turnout_10h00 = '10.00', turnout_12h00 = '12.00', turnout_15h00 = '15.00', turnout_18h00 = '18.00')
+vote_kv = {'vote_' + k.lower().translate(T) : k for s in stations for k in s['vote']}
+
 for s in stations:
 	for k, v in turnout_kv.items():
 		s[k] = (s['turnouts'] or {}).get(v, -1)
+	for k, v in vote_kv.items():
+		s[k] = (s['vote'] or {}).get(v, 0)
 
-dtype = [('election_name', 'U128'), ('tik_name', 'U128'), ('uik_num', int), ('tik_num', int), ('region_num', int), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, int) for k in sorted(turnout_kv)]
+_str = 'U128'
+dtype = [('election_name', _str), ('tik_name', _str), ('uik_num', int), ('tik_num', int), ('region_num', int), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int), ('foreign', bool)] + [(k, float) for k in sorted(turnout_kv)] + [(k, int) for k in sorted(vote_kv)]
 arr = np.array([tuple(s[n] for n, t in dtype) for s in stations], dtype = dtype)
 np.savez_compressed(args.npz, arr)
-np.savetxt(args.tsv, arr, header = '\t'.join(arr.dtype.names), fmt='\t'.join(['%s']*len(dtype)), delimiter = '\t', newline = '\n', encoding = 'utf-8')
-
+np.savetxt(args.tsv, arr, header = '\t'.join(arr.dtype.names), fmt='\t'.join({int : '%d', bool : '%d', _str: '%s', float: '%f'}[t] for n, t in dtype), delimiter = '\t', newline = '\n', encoding = 'utf-8')
