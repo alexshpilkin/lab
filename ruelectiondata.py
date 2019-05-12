@@ -16,10 +16,12 @@ args = parser.parse_args()
 
 read_all_lines = lambda file_path: list(filter(bool, (urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8').split('\n')))
 glossary = json.load(open(args.glossary))
-
 protocols = list(map(json.loads, read_all_lines(args.protocols_json)))
 ik_turnouts = {''.join(s['loc']) : s for s in map(json.loads, read_all_lines(args.ik_turnouts_json))}
 uiks_from_cikrf = list(map(json.loads, read_all_lines(args.uiks_from_cikrf_json)))
+
+sum_or_none = lambda xs: None if all(x is None for x in xs) else sum(x for x in xs if x is not None)
+letters = lambda s: ''.join(c for c in s if c.isalpha() or c.isspace())
 
 stations = []
 for p in protocols:
@@ -33,9 +35,6 @@ for p in protocols:
 	if not uik_name:
 		continue
 
-	sum_or_none = lambda xs: None if all(x is None for x in xs) else sum(x for x in xs if x is not None)
-	letters = lambda s: ''.join(c for c in s if c.isalpha() or c.isspace())
-	
 	lines = p['data']
 	if isinstance(lines, list):
 		lines = {l['line_name'] : l['line_val'] for l in lines}
@@ -44,16 +43,17 @@ for p in protocols:
 
 	station = {k : sum_or_none([(int(v) if v is not None else v) for v in map(lines_get, glossary[k]) ]) for k in glossary}
 
+	#station['region_code'] = 'RU-AMU'
+
 	station['election_name'] = election_name
 	station['uik_num'] = int(uik_name)
 	station['region_num'] = region_num
 	station['tik_num']  = int(tik_num)
 	station['tik_name'] = tik_name
 	station['vote'] = {k_ : int(v) for k, v in lines.items() for k_ in [letters(k)] if k_.istitle()}
-	voters_voted_at_station, voters_voted_early, voters_voted_outside_station = list(map(station.get, ['voters_voted_at_station', 'voters_voted_early', 'voters_voted_outside_station']))
-	station['voters_voted_early'] = voters_voted_early or 0
-	station['voters_voted_outside_station'] = voters_voted_outside_station or 0
-	station['voters_voted'] = (station['voters_voted_at_station'] + station['voters_voted_early'] + station['voters_voted_outside_station']) if voters_voted_at_station is not None else None
+	station['voters_voted_early'] = station.get('voters_voted_early', 0)
+	station['voters_voted_outside_station'] = station.get('voters_voted_outside_station', 0)
+	station['voters_voted'] = (station['voters_voted_at_station'] + station['voters_voted_early'] + station['voters_voted_outside_station']) if station.get('voters_voted_at_station') is not None else None
 
 	station['foreign'] = 'Зарубеж' in region_name or 'за пределами' in region_name 
 

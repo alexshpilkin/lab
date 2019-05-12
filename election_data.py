@@ -5,6 +5,92 @@ import unicodedata
 import urllib.request
 import numpy as np
 
+RU_REGIONS = {
+	'RU-AMU' : 'Амурская область',
+	'RU-ARK' : 'Архангельская область',
+	'RU-AST' : 'Астраханская область',
+	'RU-BEL' : 'Белгородская область',
+	'RU-BRY' : 'Брянская область',
+	'RU-VLA' : 'Владимирская область',
+	'RU-VGG' : 'Волгоградская область',
+	'RU-VLG' : 'Вологодская область',
+	'RU-VOR' : 'Воронежская область',
+	'RU-IVA' : 'Ивановская область',
+	'RU-IRK' : 'Иркутская область',
+	'RU-KGD' : 'Калининградская область',
+	'RU-KLU' : 'Калужская область',
+	'RU-KEM' : 'Кемеровская область',
+	'RU-KIR' : 'Кировская область',
+	'RU-KOS' : 'Костромская область',
+	'RU-KGN' : 'Курганская область',
+	'RU-KRS' : 'Курская область',
+	'RU-LEN' : 'Ленинградская область',
+	'RU-LIP' : 'Липецкая область',
+	'RU-MAG' : 'Магаданская область',
+	'RU-MOS' : 'Московская область',
+	'RU-MUR' : 'Мурманская область',
+	'RU-NIZ' : 'Нижегородская область',
+	'RU-NGR' : 'Новгородская область',
+	'RU-NVS' : 'Новосибирская область',
+	'RU-OMS' : 'Омская область',
+	'RU-ORE' : 'Оренбургская область',
+	'RU-ORL' : 'Орловская область',
+	'RU-PNZ' : 'Пензенская область',
+	'RU-PSK' : 'Псковская область',
+	'RU-ROS' : 'Ростовская область',
+	'RU-RYA' : 'Рязанская область',
+	'RU-SAM' : 'Самарская область',
+	'RU-SAR' : 'Саратовская область',
+	'RU-SAK' : 'Сахалинская область',
+	'RU-SVE' : 'Свердловская область',
+	'RU-SMO' : 'Смоленская область',
+	'RU-TAM' : 'Тамбовская область',
+	'RU-TVE' : 'Тверская область',
+	'RU-TOM' : 'Томская область',
+	'RU-TUL' : 'Тульская область',
+	'RU-TYU' : 'Тюменская область',
+	'RU-ULY' : 'Ульяновская область',
+	'RU-CHE' : 'Челябинская область',
+	'RU-YAR' : 'Ярославская область',
+	'RU-AD'  : 'Адыгея', 
+	'RU-BA'  : 'Башкортостан',
+	'RU-BU'  : 'Бурятия',
+	'RU-DA'  : 'Дагестан',
+	'RU-IN'  : 'Ингушетия',
+	'RU-KB'  : 'Кабардино-Балкария',
+	'RU-KL'  : 'Калмыкия',
+	'RU-KC'  : 'Карачаево-Черкесия',
+	'RU-KR'  : 'Карелия',
+	'RU-ME'  : 'Марий Эл',
+	'RU-MO'  : 'Мордовия',
+	'RU-AL'  : 'Республика Алтай',
+	'RU-KO'  : 'Республика Коми',
+	'RU-SA'  : 'Республика Саха',
+	'RU-SE'  : 'Северная Осетия',
+	'RU-TA'  : 'Татарстан',
+	'RU-TY'  : 'Тыва',
+	'RU-UD'  : 'Удмуртия',
+	'RU-KK'  : 'Хакасия',
+	'RU-CE'  : 'Чечня',
+	'RU-CU'  : 'Чувашия',
+	'RU-ALT' : 'Алтайский край',
+	'RU-ZAB' : 'Забайкальский край',
+	'RU-KAM' : 'Камчатский край',
+	'RU-KDA' : 'Краснодарский край',
+	'RU-KYA' : 'Красноярский край',
+	'RU-PER' : 'Пермский край',
+	'RU-PRI' : 'Приморский край',
+	'RU-STA' : 'Ставропольский край',
+	'RU-KHA' : 'Хабаровский край',
+	'RU-NEN' : 'Ненецкий автономный округ',
+	'RU-KHM' : 'Ханты-Мансийский автономный округ — Югра',
+	'RU-CHU' : 'Чукотский автономный округ',
+	'RU-YAN' : 'Ямало-Ненецкий автономный округ',
+	'RU-SPE' : 'Санкт-Петербург',
+	'RU-MOW' : 'Москва',
+	'RU-YEV' : 'Еврейская автономная область'
+}
+
 COLUMNS = ('leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'region', 'territory', 'precinct', 'foreign')
 
 TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
@@ -69,6 +155,12 @@ def load(fileorurl, numpy=False, latin=False):
 	precinct = table['uik']
 	foreign = np.array(['Зарубеж' in s or 'за пределами' in s for s in region])
 	return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, region, territory, precinct, foreign], names=COLUMNS)
+
+	#leader = table[[n for n in table.dtype.names if 'putin' in n][0]]
+	#region = table['region']
+	#territory = np.chararray.replace(tik_name, 'Территориальная избирательная комиссия', 'ТИК')
+	#return np.rec.fromarrays([leader, table.voters_registered, table.voters_voted, table.ballots_valid + table.ballots_invalid, region, territory, table.uik_num, table.foreign], names=COLUMNS)
+
 
 def filter(D, region=None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
 	idx = np.full(len(D), True)
