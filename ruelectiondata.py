@@ -66,7 +66,7 @@ json.dump(stations, open(args.json, 'w'), ensure_ascii = False, indent = 2, sort
 
 T = {ord(a): ord(b) for a, b in zip(' абвгдеёжзийклмнопрстуфхцчшщъыьэюя', '_abvgdeezzijklmnoprstufhccssyyyeua')}
 turnout_kv = dict(turnout_10h00 = '10.00', turnout_12h00 = '12.00', turnout_15h00 = '15.00', turnout_18h00 = '18.00')
-vote_kv = {'vote_' + k.lower().translate(T) : k for s in stations for k in s['vote']}
+vote_kv = {'ballots_' + k.lower().translate(T) : k for s in stations for k in s['vote']}
 
 for s in stations:
 	for k, v in turnout_kv.items():
