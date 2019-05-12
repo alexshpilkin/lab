@@ -36,7 +36,9 @@ for p in protocols:
 	letters = lambda s: ''.join(c for c in s if c.isalpha() or c.isspace())
 	
 	lines = p['data']
-	#lines = {l['line_name'] : l['line_val'] for l in p['data']}
+	if isinstance(lines, list):
+		lines = {l['line_name'] : l['line_val'] for l in lines}
+
 	lines_get = lambda g: ([v for k, v in lines.items() if g in k] + [None])[0]
 
 	station = {k : sum_or_none([(int(v) if v is not None else v) for v in map(lines_get, glossary[k]) ]) for k in glossary}
