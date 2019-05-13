@@ -138,8 +138,8 @@ def load(fileorurl, numpy=False, latin=False):
 			                    quoting=csv.QUOTE_NONE)
 			it = iter(rd)
 			first = next(it)
-			types = [(toident(name), '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() else '<U127') for name, value in zip(rd.fieldnames, first.values())]
-			table = np.array([tuple(first.values())], dtype=types)
+			dtype = [(toident(name), '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() else '<U127') for name, value in zip(rd.fieldnames, first.values())]
+			table = np.array([tuple(first.values())], dtype=dtype)
 			for i, row in enumerate(it):
 				if i + 1 >= len(table):
 					table.resize(2*len(table))
