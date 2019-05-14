@@ -115,13 +115,6 @@ def load(fileorurl, numpy=False, latin=False):
 		else:
 			return open(fileorurl, 'rb')
 
-	def flt(table, include, exclude=()):
-		return [col
-				for col in table.dtype.names
-				if any(toident(f) in col for f in include) and
-				not any(toident(f) in col for f in exclude)]
-
-
 	if numpy:
 		with urlopen(fileorurl) as file:
 			table = np.load(io.BytesIO(file.read()))
@@ -146,21 +139,9 @@ def load(fileorurl, numpy=False, latin=False):
 				table[i + 1] = tuple(row.values())
 			table.resize(i + 1)
 		
-	leader = np.squeeze(table[flt(table, {'Путин', 'Единая Россия', 'Медведев'})[0]])
-	voters_registered = np.squeeze(table[flt(table, {'Число избирателей, включенных', 'Число избирателей, внесенных'})[0]])
-	voters_voted = np.sum(np.vstack([table[c] for c in flt(table, {'бюллетеней, выданных'})]).T, axis=1)
-	ballots_valid_invalid = np.sum(np.vstack([table[c] for c in flt(table, {'действительных', 'недействительных'}, {'отметок'})]).T, axis=1)
-	region = table['region']
-	territory = np.chararray.replace(table['tik'], 'Территориальная избирательная комиссия', 'ТИК')
-	precinct = table['uik']
-	foreign = np.array(['Зарубеж' in s or 'за пределами' in s for s in region])
-	return np.rec.fromarrays([leader, voters_registered, voters_voted, ballots_valid_invalid, region, territory, precinct, foreign], names=COLUMNS)
-
-	#leader = table[[n for n in table.dtype.names if 'putin' in n][0]]
-	#region = table['region']
-	#territory = np.chararray.replace(tik_name, 'Территориальная избирательная комиссия', 'ТИК')
-	#return np.rec.fromarrays([leader, table.voters_registered, table.voters_voted, table.ballots_valid + table.ballots_invalid, region, territory, table.uik_num, table.foreign], names=COLUMNS)
-
+	leader = table[[n for n in table.dtype.names if 'putin' in n][0]]
+	territory = np.chararray.replace(table['tik_name'], 'Территориальная избирательная комиссия', 'ТИК')
+	return np.rec.fromarrays([leader, table['voters_registered'], table['voters_voted'], table['ballots_valid'] + table['ballots_invalid'], table['region_name'], territory, table['uik_num'], table['foreign']], names=COLUMNS)
 
 def filter(D, region=None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
 	idx = np.full(len(D), True)

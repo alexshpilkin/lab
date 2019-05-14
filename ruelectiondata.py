@@ -46,15 +46,15 @@ for p in protocols:
 	lines_get = lambda g: ([v for k, v in lines.items() if g in k] + [None])[0]
 
 	station = {k : sum_or_none([(int(v) if v is not None else v) for v in map(lines_get, glossary['fields'][k]) ]) for k in glossary['fields']}
-
 	for k, v in station.items():
 		if v is None:
 			bad[k].update(lines)
 
 	station['region_code'] = ([k for k, v in glossary['regions'].items() for vv in v if vv in region_name] + [None])[0]
-
 	if station['region_code'] is None:
 		bad['regions'].add(region_name)
+
+	station['region_name'] = region_name
 
 	station['election_name'] = election_name
 	station['uik_num'] = int(uik_name)
@@ -87,7 +87,7 @@ for s in stations:
 		s[k] = (s['vote'] or {}).get(v, 0)
 
 _str = 'U128'
-dtype = [('election_name', _str), ('region_code', _str), ('tik_name', _str), ('uik_num', int), ('tik_num', int), ('region_num', int), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int), ('foreign', bool)] + [(k, float) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
+dtype = [('election_name', _str), ('region_name', _str), ('region_code', _str), ('tik_name', _str), ('uik_num', int), ('tik_num', int), ('region_num', int), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int), ('foreign', bool)] + [(k, float) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
 arr = np.array([tuple(s[n] for n, t in dtype) for s in stations], dtype = dtype)
 np.savez_compressed(args.npz, arr)
 np.savetxt(args.tsv, arr, header = '\t'.join(arr.dtype.names), fmt='\t'.join({int : '%d', bool : '%d', _str: '%s', float: '%f'}[t] for n, t in dtype), delimiter = '\t', newline = '\n', encoding = 'utf-8')
