@@ -111,7 +111,7 @@ if __name__ == '__main__':
   matplotlib.use('Agg')
    
   parser = argparse.ArgumentParser()
-  parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
+  parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/stations_ruelectiondata.tsv.gz', help='Data file to use, in TSV format')
   parser.add_argument('--npy', default=None, help='Data file to use, in NPY or NPZ format')
   parser.add_argument('--bin-width', default=0.25, type=float, help='Bin width in percentage points')
   parser.add_argument('--weights', default='voters', choices={'voters', 'given', 'leader', 'ones'}, help="'ones' (counts polling stations), 'voters'  (counts registered voters), 'given' (counts ballots given), or 'leader' (counts ballots for the leader)")

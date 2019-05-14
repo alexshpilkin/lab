@@ -56,7 +56,7 @@ if __name__ == '__main__':
 	matplotlib.use('Agg')
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/2018.tsv.gz', help='Data file to use, in TSV format')
+	parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/stations_ruelectiondata.tsv.gz', help='Data file to use, in TSV format')
 	parser.add_argument('--npy', default=None, help='Data file to use, in NPY or NPZ format')
 	parser.add_argument('-o', '--output', default='bubbles', help='Output directory')
 	args = parser.parse_args()

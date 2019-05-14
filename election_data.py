@@ -107,21 +107,13 @@ def toident(s):
 	return s.lower().replace(' ', '_').translate({ord(c) : None for c in ''',."'()'''})
 
 def load(fileorurl, numpy=False, latin=False):
-	def urlopen(fileorurl):
-		if isinstance(fileorurl, io.BufferedIOBase):
-			return io.BufferedReader(fileorurl)
-		elif fileorurl.startswith('http'):
-			return urllib.request.urlopen(fileorurl)
-		else:
-			return open(fileorurl, 'rb')
-
-	if numpy:
-		with urlopen(fileorurl) as file:
+	file = (urllib.request.urlopen(fileorurl) if fileorurl.startswith('http') else open(fileorurl, 'rb')) if isinstance(fileorurl, str) else io.BufferedReader(fileorurl)
+	with file:
+		if numpy:
 			table = np.load(io.BytesIO(file.read()))
 			if isinstance(table, np.lib.npyio.NpzFile):
 				table = table['arr_0']
-	else:
-		with urlopen(fileorurl) as file:
+		else:
 			if file.peek(1)[:1] == b'\x1f':	# gzip magic
 				file = gzip.GzipFile(fileobj=file)
 			# https://www.iana.org/assignments/media-types/text/tab-separated-values
