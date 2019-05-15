@@ -90,7 +90,7 @@ vote_kv = {'ballots_' + election_data.toident(k.lower()): k
 
 for s in stations:
 	for k, v in glossary['turnouts'].items():
-		s[k] = (s['turnouts'] or {}).get(v, -1)
+		s[k] = (s['turnouts'] or {}).get(v, np.nan)
 	for k, v in vote_kv.items():
 		s[k] = (s['vote'] or {}).get(v, 0)
 
