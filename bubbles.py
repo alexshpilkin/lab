@@ -57,6 +57,7 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument('data', nargs='?', metavar='DATA', default='https://github.com/schitaytesami/lab/releases/download/data-v2/2018.tsv.gz', help='Data file to use, in TSV, NPY or NPZ format')
+	parser.add_argument('--dpi', default=None, type=int, help='Resolution of the output images')
 	parser.add_argument('-o', '--output', default='bubbles', help='Output directory')
 	args = parser.parse_args()
 
@@ -68,8 +69,8 @@ if __name__ == '__main__':
 	for region in np.unique(D.region):
 		name = election_data.toident(region)
 		print(region, flush=True)
-		plt.figure(figsize=(12,4))
+		plt.figure(figsize=(12, 4))
 		plot(election_data.translit(region), election_data.filter(D, region=region))
 		plt.savefig(os.path.join(args.output, name + '.png'),
-		            bbox_inches='tight')
+		            bbox_inches='tight', dpi=args.dpi)
 		plt.close()

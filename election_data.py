@@ -42,7 +42,7 @@ def load(fileorurl):
 			                    quoting=csv.QUOTE_NONE)
 			it = iter(rd)
 			first = next(it)
-			dtype = [(toident(name), '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() else '<U128') for name, value in zip(rd.fieldnames, first.values())]
+			dtype = [(toident(name), '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else '<U128') for name, value in zip(rd.fieldnames, first.values())]
 			table = np.array([tuple(first.values())], dtype=dtype)
 			for i, row in enumerate(it, start=1):
 				if i >= len(table):
@@ -52,7 +52,14 @@ def load(fileorurl):
 		
 	leader = table[[n for n in table.dtype.names if 'putin' in n][0]]
 	territory = np.chararray.replace(table['tik_name'], 'Территориальная избирательная комиссия', 'ТИК')
-	return np.rec.fromarrays([leader, table['voters_registered'], table['voters_voted'], table['ballots_valid'] + table['ballots_invalid'], table['region_name'], territory, table['uik_num'], table['foreign']], names=COLUMNS)
+
+	columns = list(COLUMNS)
+	arrays  = [leader, table['voters_registered'], table['voters_voted'], table['ballots_valid'] + table['ballots_invalid'], table['region_name'], territory, table['uik_num'], table['foreign']]
+	for name in table.dtype.fields:
+		if not name.startswith('turnout_'): continue
+		columns.append(name)
+		arrays.append(table[name])
+	return np.rec.fromarrays(arrays, names=columns)
 
 def filter(D, region=None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
 	idx = np.full(len(D), True)
