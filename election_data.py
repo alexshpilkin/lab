@@ -94,9 +94,9 @@ RU_REGIONS = {
 COLUMNS = ('leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'region', 'territory', 'precinct', 'foreign')
 
 TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
-	'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
-	'ABVGDEËŽZIJKLMNOPRSTUFHCČŠŜ"Y\'ÈÛÂ'
-	'abvgdeëžzijklmnoprstufhcčšŝ"y\'èûâ')	# ISO 9:1995
+            'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
+            'ABVGDEËŽZIJKLMNOPRSTUFHCČŠŜ"Y\'ÈÛÂ'
+            'abvgdeëžzijklmnoprstufhcčšŝ"y\'èûâ') # ISO 9:1995
 TRANSLIT = {ord(a): ord(b) for a, b in zip(*TRANSLIT)}
 
 def translit(s):
@@ -106,18 +106,22 @@ def toident(s):
 	s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
 	return s.lower().replace(' ', '_').translate({ord(c) : None for c in ''',."'()'''})
 
-def load(fileorurl, numpy=False, latin=False):
-	file = (urllib.request.urlopen(fileorurl) if fileorurl.startswith('http') else open(fileorurl, 'rb')) if isinstance(fileorurl, str) else io.BufferedReader(fileorurl)
+def load(fileorurl):
+	file = ((urllib.request.urlopen(fileorurl)
+	         if fileorurl.startswith('http')
+	         else open(fileorurl, 'rb'))
+	        if isinstance(fileorurl, str)
+	        else io.BufferedReader(fileorurl))
 	with file:
-		if numpy:
+		if file.peek(2).startswith(b'\x1f\x8b'):
+			file = gzip.GzipFile(fileobj=file)
+		if file.peek(4).startswith(b'PK\x03\x04'):
+			table = np.load(io.BytesIO(file.read()))['arr_0']
+		elif file.peek(6).startswith(b'\x93NUMPY'):
 			table = np.load(io.BytesIO(file.read()))
-			if isinstance(table, np.lib.npyio.NpzFile):
-				table = table['arr_0']
 		else:
-			if file.peek(1)[:1] == b'\x1f':	# gzip magic
-				file = gzip.GzipFile(fileobj=file)
 			# https://www.iana.org/assignments/media-types/text/tab-separated-values
-			rd = csv.DictReader(io.TextIOWrapper(file, newline='\r\n'),
+			rd = csv.DictReader(io.TextIOWrapper(file, newline='\n'),
 			                    delimiter='\t',
 			                    lineterminator='\n',
 			                    quoting=csv.QUOTE_NONE)
@@ -125,11 +129,11 @@ def load(fileorurl, numpy=False, latin=False):
 			first = next(it)
 			dtype = [(toident(name), '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() else '<U127') for name, value in zip(rd.fieldnames, first.values())]
 			table = np.array([tuple(first.values())], dtype=dtype)
-			for i, row in enumerate(it):
-				if i + 1 >= len(table):
+			for i, row in enumerate(it, start=1):
+				if i >= len(table):
 					table.resize(2*len(table))
-				table[i + 1] = tuple(row.values())
-			table.resize(i + 1)
+				table[i] = tuple(row.values())
+			table.resize(i)
 		
 	leader = table[[n for n in table.dtype.names if 'putin' in n][0]]
 	territory = np.chararray.replace(table['tik_name'], 'Территориальная избирательная комиссия', 'ТИК')

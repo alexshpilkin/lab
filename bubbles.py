@@ -56,12 +56,11 @@ if __name__ == '__main__':
 	matplotlib.use('Agg')
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--tsv', default='https://github.com/schitaytesami/lab/releases/download/data/stations_ruelectiondata.tsv.gz', help='Data file to use, in TSV format')
-	parser.add_argument('--npy', default=None, help='Data file to use, in NPY or NPZ format')
+	parser.add_argument('data', nargs='?', metavar='DATA', default='https://github.com/schitaytesami/lab/releases/download/data/stations_ruelectiondata.tsv.gz', help='Data file to use, in TSV, NPY or NPZ format')
 	parser.add_argument('-o', '--output', default='bubbles', help='Output directory')
 	args = parser.parse_args()
 
-	D = election_data.load(args.npy or args.tsv, numpy=args.npy is not None)
+	D = election_data.load(args.data)
 
 	if not os.path.exists(args.output):
 		os.mkdir(args.output)
