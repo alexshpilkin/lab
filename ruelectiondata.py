@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import collections
 import argparse
 import json
@@ -5,21 +7,23 @@ import urllib.parse
 import urllib.request
 import numpy as np
 
+import election_data
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--glossary', default = 'ruelectiondata.json')
-parser.add_argument('--protocols_json', default = 'https://github.com/schitaytesami/data/releases/download/20180318/protocols_227_json.txt')
-parser.add_argument('--ik_turnouts_json', default = 'https://github.com/schitaytesami/data/releases/download/20180318/ik_turnouts_json.txt')
-parser.add_argument('--uiks_from_cikrf_json', default = 'https://github.com/schitaytesami/data/releases/download/20180318/uiks_from_cikrf_json.txt')
-parser.add_argument('--json', default = 'stations_ruelectiondata.json')
-parser.add_argument('--npz', default = 'stations_ruelectiondata.npz')
-parser.add_argument('--tsv', default = 'stations_ruelectiondata.tsv.gz')
-parser.add_argument('--bad', default = 'bad.json')
+parser.add_argument('--protocols-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/protocols_227_json.txt')
+parser.add_argument('--turnouts-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/ik_turnouts_json.txt')
+parser.add_argument('--precincts-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/uiks_from_cikrf_json.txt')
+parser.add_argument('--json')
+parser.add_argument('--npz')
+parser.add_argument('--tsv')
+parser.add_argument('--bad-json')
 args = parser.parse_args()
 
 read_all_lines = lambda file_path: list(filter(bool, (urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8').split('\n')))
 glossary = json.load(open(args.glossary))
-protocols = list(map(json.loads, read_all_lines(args.protocols_json)))
-ik_turnouts = {''.join(s['loc']) : s for s in map(json.loads, read_all_lines(args.ik_turnouts_json))}
+protocols = list(map(json.loads, read_all_lines(args.protocols_jsonl)))
+ik_turnouts = {''.join(s['loc']) : s for s in map(json.loads, read_all_lines(args.turnouts_jsonl))}
 #uiks_from_cikrf = list(map(json.loads, read_all_lines(args.uiks_from_cikrf_json)))
 
 sum_or_none = lambda xs: None if all(x is None for x in xs) else sum(x for x in xs if x is not None)
@@ -54,9 +58,8 @@ for p in protocols:
 	if station['region_code'] is None:
 		bad['regions'].add(region_name)
 
-	station['region_name'] = region_name
-
 	station['election_name'] = election_name
+	station['region_name'] = region_name.lstrip('0123456789 ')
 	station['uik_num'] = int(uik_name)
 	station['region_num'] = region_num
 	station['tik_num']  = int(tik_num)
@@ -74,11 +77,16 @@ for p in protocols:
 
 for k in bad:
 	bad[k] = list(sorted(bad[k]))
-json.dump(bad, open(args.bad, 'w'), ensure_ascii = False, indent = 2, sort_keys = True)
-json.dump(stations, open(args.json, 'w'), ensure_ascii = False, indent = 2, sort_keys = True)
+if args.bad_json is not None:
+	with open(args.bad_json, 'w', newline='\r\n') as file:
+		json.dump(bad, file, ensure_ascii=False, indent=2, sort_keys=True)
 
-T = {ord(a): ord(b) for a, b in zip(' абвгдеёжзийклмнопрстуфхцчшщъыьэюя', '_abvgdeezzijklmnoprstufhccssyyyeua')}
-vote_kv = {'ballots_' + k.lower().translate(T) : k for s in stations for k in s['vote']}
+if args.json is not None:
+	with open(args.json, 'w', newline='\r\n') as file:
+		json.dump(stations, file, ensure_ascii=False, indent=2, sort_keys=True)
+
+vote_kv = {'ballots_' + election_data.toident(k.lower()): k
+           for s in stations for k in s['vote']}
 
 for s in stations:
 	for k, v in glossary['turnouts'].items():
@@ -89,5 +97,8 @@ for s in stations:
 _str = 'U128'
 dtype = [('election_name', _str), ('region_name', _str), ('region_code', _str), ('tik_name', _str), ('uik_num', int), ('tik_num', int), ('region_num', int), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int), ('foreign', bool)] + [(k, float) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
 arr = np.array([tuple(s[n] for n, t in dtype) for s in stations], dtype = dtype)
-np.savez_compressed(args.npz, arr)
-np.savetxt(args.tsv, arr, header = '\t'.join(arr.dtype.names), fmt='\t'.join({int : '%d', bool : '%d', _str: '%s', float: '%f'}[t] for n, t in dtype), delimiter = '\t', newline = '\n', encoding = 'utf-8')
+
+if args.npz is not None:
+	np.savez_compressed(args.npz, arr)
+
+np.savetxt(args.tsv, arr, comments='', header='\t'.join(arr.dtype.names), fmt='\t'.join({int: '%d', bool: '%d', _str: '%s', float: '%.4f'}[t] for n, t in dtype), delimiter='\t', newline='\r\n', encoding = 'utf-8')

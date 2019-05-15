@@ -111,7 +111,7 @@ if __name__ == '__main__':
   matplotlib.use('Agg')
    
   parser = argparse.ArgumentParser()
-  parser.add_argument('data', nargs='?', metavar='DATA', default='https://github.com/schitaytesami/lab/releases/download/data/stations_ruelectiondata.tsv.gz', help='Data file to use, in TSV, NPY or NPZ format')
+  parser.add_argument('data', nargs='?', metavar='DATA', default='https://github.com/schitaytesami/lab/releases/download/data-v2/2018.tsv.gz', help='Data file to use, in TSV, NPY or NPZ format')
   parser.add_argument('--bin-width', default=0.25, type=float, help='Bin width in percentage points')
   parser.add_argument('--weights', default='voters', choices={'voters', 'given', 'leader', 'ones'}, help="'ones' (counts polling stations), 'voters'  (counts registered voters), 'given' (counts ballots given), or 'leader' (counts ballots for the leader)")
   parser.add_argument('--min-size', default=0, type=int, help='Minimum precinct size to include')
@@ -124,6 +124,6 @@ if __name__ == '__main__':
   D = election_data.load(args.data)
 
   plt.figure(figsize=[9.0, 9.0])
-  plot(os.path.basename(data_path), D, binwidth = args.bin_width, weights = args.weights, minsize = args.min_size, noise = args.noise, cmap=args.colormap)
+  plot(os.path.basename(args.data), D, binwidth=args.bin_width, weights=args.weights, minsize=args.min_size, noise=args.noise, cmap=args.colormap)
   plt.savefig(args.output, bbox_inches='tight', dpi=args.dpi)
   plt.close()

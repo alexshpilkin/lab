@@ -22,7 +22,7 @@ def plot(title, D, unit=1000):
 	tsum = np.insert(np.cumsum(tlen), 0, 0)
 	assert np.unique(terr).shape == terr.shape
 
-	plt.suptitle(title, size=20, y=0.925, va='baseline')
+	plt.title(title + '\n', size=20, va='baseline')
 	plt.scatter(np.arange(len(D.voters_registered)),
 	            100 * D.leader / D.ballots_valid_invalid,
 	            s=D.voters_registered / unit * 20,
@@ -56,7 +56,7 @@ if __name__ == '__main__':
 	matplotlib.use('Agg')
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument('data', nargs='?', metavar='DATA', default='https://github.com/schitaytesami/lab/releases/download/data/stations_ruelectiondata.tsv.gz', help='Data file to use, in TSV, NPY or NPZ format')
+	parser.add_argument('data', nargs='?', metavar='DATA', default='https://github.com/schitaytesami/lab/releases/download/data-v2/2018.tsv.gz', help='Data file to use, in TSV, NPY or NPZ format')
 	parser.add_argument('-o', '--output', default='bubbles', help='Output directory')
 	args = parser.parse_args()
 
@@ -69,7 +69,7 @@ if __name__ == '__main__':
 		name = election_data.toident(region)
 		print(region, flush=True)
 		plt.figure(figsize=(12,4))
-		plot(region, election_data.filter(D, region=region))
+		plot(election_data.translit(region), election_data.filter(D, region=region))
 		plt.savefig(os.path.join(args.output, name + '.png'),
 		            bbox_inches='tight')
 		plt.close()
