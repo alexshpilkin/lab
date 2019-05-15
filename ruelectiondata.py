@@ -59,7 +59,7 @@ for p in protocols:
 		bad['regions'].add(region_name)
 
 	station['election_name'] = election_name
-	station['region_name'] = region_name.lstrip('0123456789 ')
+	station['region_name'] = glossary['regions'].get(station['region_code'], [region_name])[0]
 	station['uik_num'] = int(uik_name)
 	station['region_num'] = region_num
 	station['tik_num']  = int(tik_num)
@@ -68,7 +68,7 @@ for p in protocols:
 	station['voters_voted_early'] = station.get('voters_voted_early', 0)
 	station['voters_voted_outside_station'] = station.get('voters_voted_outside_station', 0)
 	station['voters_voted'] = (station['voters_voted_at_station'] + station['voters_voted_early'] + station['voters_voted_outside_station']) if station.get('voters_voted_at_station') is not None else None
-	station['foreign'] = station['region_code'] == 'RU-FRN'
+	station['foreign'] = station['region_code'] == 'FRN'
 
 	p['loc'][-1] = uik_name + ' ' + p['loc'][-1]
 	station['turnouts'] = {k.replace('.', ':') : v for k, v in ik_turnouts.get(''.join(p['loc']), dict(turnouts = {}))['turnouts'].items()} or None
