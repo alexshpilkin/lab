@@ -1,6 +1,5 @@
 %% fetch
 arrayBuffer: lab=https://cors-anywhere.herokuapp.com/https://github.com/schitaytesami/lab/archive/master.zip
-arrayBuffer: data=https://cors-anywhere.herokuapp.com/https://github.com/schitaytesami/lab/releases/download/data-v2/2018.npz
 %% js
 var open_url_binary = (url, then) => fetch(url).then(res => res.arrayBuffer()).then(then);
 %% py
@@ -31,18 +30,6 @@ def reinit_select(id, options, onchange):
 	select.onchange = lambda event: plot(event.target.value)
 	onchange(options[0][0])
 
-def render_datasets(id, datasets):
-	def ondatasetloaded(bytes):
-		global D, regions
-		D = election_data.load(io.BytesIO(bytes))
-		regions = list(sorted(np.unique(D.region)))
-		reinit_select(id, [('', 'Russia')] + regions, plot)
-
-	def ondatasetchanged(dataset):
-		js.open_url_binary(datasets[dataset], ondatasetloaded)
-    
-	reinit_select(id, [(dataset, dataset) for dataset in sorted(datasets)], ondatasetchanged)
-	
 def plot(region):
 	D_ = election_data.filter(D, region = region)
 
@@ -59,13 +46,6 @@ def plot(region):
 	plt.clf()
 	history.plot(region or 'Country', D_, binwidth = 0.25)
 	plt.show()
-%% py
-datasets = {
-	'2018/03/18 - Russia, presidential elections' : 'https://cors-anywhere.herokuapp.com/https://github.com/schitaytesami/lab/releases/download/data-v2/2018.npz'
-}
-D = None
-regions = None
-
 %% md
 <h1>Select a dataset</h1>
 <select id="datasets" style="width:100%"></select>
@@ -82,4 +62,19 @@ plt.figure('bubbles'); plt.show()
 %% py
 plt.figure('history'); plt.show()
 %% py
-render_datasets('datasets', datasets)
+datasets = {
+	'2018/03/18 - Russia, presidential elections' : 'https://cors-anywhere.herokuapp.com/https://github.com/schitaytesami/lab/releases/download/data-v2/2018.npz'
+}
+D = None
+regions = None
+
+def ondatasetloaded(bytes):
+	global D, regions
+	D = election_data.load(io.BytesIO(bytes))
+	regions = list(sorted(np.unique(D.region)))
+	reinit_select('regions', [('', 'Russia')] + regions, plot)
+
+def ondatasetchanged(dataset):
+	js.open_url_binary(datasets[dataset], ondatasetloaded)
+    
+reinit_select('datasets', [(dataset, dataset) for dataset in sorted(datasets)], ondatasetchanged)
