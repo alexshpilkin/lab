@@ -27,7 +27,7 @@ def reinit_select(id, options, onchange):
 		option.value = value
 		option.innerText = innerText
 		select.options.add(option)
-	select.onchange = lambda event: plot(event.target.value)
+	select.onchange = lambda event: onchange(event.target.value)
 	onchange(options[0][0])
 
 def plot(region):
