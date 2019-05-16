@@ -38,11 +38,11 @@ for u in uiks_from_cikrf:
 		bad['regions'].add(u['region'])
 
 	precinct = {}
-	precinct['commission_address'] = u['address'].strip()
+	precinct['commission_address'] = u['address'].strip().replace('\t', ' ')
 	assert len(precinct['commission_address']) <= 512
 	precinct['commission_lat'] = coord(u['coords']['lat'])
 	precinct['commission_lon'] = coord(u['coords']['lon'])
-	precinct['station_address'] = u['voteaddress'].strip()
+	precinct['station_address'] = u['voteaddress'].strip().replace('\t', ' ')
 	assert len(precinct['station_address']) <= 512
 	precinct['station_lat'] = coord(u['votecoords']['lat'])
 	precinct['station_lon'] = coord(u['votecoords']['lon'])
