@@ -1,7 +1,8 @@
 %% fetch
 arrayBuffer: lab=https://cors-anywhere.herokuapp.com/https://github.com/schitaytesami/lab/archive/master.zip
-arrayBuffer: data=https://cors-anywhere.herokuapp.com/https://github.com/schitaytesami/lab/releases/download/data/data_2018.npz
-
+arrayBuffer: data=https://cors-anywhere.herokuapp.com/https://github.com/schitaytesami/lab/releases/download/data-v2/2018.npz
+%% js
+var open_url_binary = (url, then) => fetch(url).then(res => res.arrayBuffer()).then(then);
 %% py
 import os, sys, io, zipfile
 import numpy as np
@@ -9,47 +10,76 @@ import matplotlib
 import matplotlib.pyplot as plt
 import js
 if not os.path.exists('lab-master'):
-    zipfile.ZipFile(io.BytesIO(js.lab)).extractall('.')
+    zipfile.ZipFile(io.BytesIO(js.lab)).extractall()
     sys.path.append('lab-master')
 import election_data
 import square
 import bubbles
+import history
 
-matplotlib.rcParams['figure.dpi'] = 50
+#matplotlib.rcParams['figure.dpi'] = 50
 
-def render_regions(id, regions, region_changed):
+def reinit_select(id, options, onchange):
 	select = js.document.getElementById(id)
 	while len(select.options) > 0:
 		select.options.remove(0)
-	for region in regions:
+	for value, innerText in options:
 		option = js.document.createElement('option')
-		option.value = region
-		option.innerText = region or 'Russia'
+		option.value = value
+		option.innerText = innerText
 		select.options.add(option)
-	select.onchange = lambda event: region_changed(event.target.value)
-	region_changed(regions[0])
-%% py
-D = election_data.load(io.BytesIO(js.data), numpy = True)
-regions = list(sorted(np.unique(D.region)))
-%% md
-<h1>Voting result and turnout</h1>
-<select id="regions1" style="width:100%" />
-%% py
-def regions1_changed(region):
-	plt.figure('square', figsize=(12, 12))
-	plt.clf()
-	square.plot(region or 'Country', election_data.filter(D, region = region), binwidth = 0.25, weights='voters', minsize=0, noise=False)
-	plt.show()
+	select.onchange = lambda event: plot(event.target.value)
+	onchange(options[0][0])
 
-render_regions('regions1', [''] + regions, regions1_changed)
+def render_datasets(id, datasets):
+	def ondatasetloaded(bytes):
+		global D, regions
+		D = election_data.load(io.BytesIO(bytes))
+		regions = list(sorted(np.unique(D.region)))
+		reinit_select(id, [('', 'Russia')] + regions, plot)
+
+	def ondatasetchanged(dataset):
+		js.open_url_binary(datasets[dataset], ondatasetloaded)
+    
+	reinit_select(id, [(dataset, dataset) for dataset in sorted(datasets)], ondatasetchanged)
+	
+def plot(region):
+	D_ = election_data.filter(D, region = region)
+
+	plt.figure('square')
+	plt.clf()
+	square.plot(region or 'Country', D_, binwidth = 0.25)
+	plt.show()
+	plt.figure('bubbles')
+	plt.clf()
+	if region:
+		bubbles.plot(region, D_)
+	plt.show()
+	plt.figure('history')
+	plt.clf()
+	history.plot(region or 'Country', D_, binwidth = 0.25)
+	plt.show()
+%% py
+datasets = {
+	'2018/03/18 - Russia, presidential elections' : 'https://cors-anywhere.herokuapp.com/https://github.com/schitaytesami/lab/releases/download/data-v2/2018.npz'
+}
+D = None
+regions = None
+
+%% md
+<h1>Select a dataset</h1>
+<select id="datasets" style="width:100%"></select>
+<select id="regions" style="width:100%"></select>
+<h1>Voting result and turnout</h1>
+%% py
+plt.figure('square'); plt.show()
 %% md
 <h1>Sorted voting stations</h1>
-<select id="regions2" style="width:100%" />
 %% py
-def regions2_changed(region):
-	plt.figure('bubbles', figsize = (12, 4))
-	plt.clf()
-	bubbles.plot(region or 'Country', election_data.filter(D, region = region))
-	plt.show()
-    
-render_regions('regions2', regions, regions2_changed)
+plt.figure('bubbles'); plt.show()
+%% md
+<h1>Turnout dynamics</h1>
+%% py
+plt.figure('history'); plt.show()
+%% py
+render_datasets('datasets', datasets)
