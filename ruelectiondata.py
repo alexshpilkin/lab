@@ -39,9 +39,11 @@ for u in uiks_from_cikrf:
 
 	precinct = {}
 	precinct['commission_address'] = u['address'].strip()
+	assert len(precinct['commission_address']) <= 512
 	precinct['commission_lat'] = coord(u['coords']['lat'])
 	precinct['commission_lon'] = coord(u['coords']['lon'])
 	precinct['station_address'] = u['voteaddress'].strip()
+	assert len(precinct['station_address']) <= 512
 	precinct['station_lat'] = coord(u['votecoords']['lat'])
 	precinct['station_lon'] = coord(u['votecoords']['lon'])
 	precinct['members'] = [{'name': m['ФИО'],
@@ -122,7 +124,7 @@ for s in stations:
 	for k, v in vote_kv.items():
 		s[k] = (s['vote'] or {}).get(v, 0)
 
-_str = 'U128'
+_str = 'U512'
 dtype = [('election_name', _str), ('region_num', int), ('region_code', _str), ('region_name', _str), ('tik_num', int), ('tik_name', _str), ('uik_num', int), ('foreign', bool), ('commission_address', _str), ('commission_lat', float), ('commission_lon', float), ('station_address', _str), ('station_lat', float), ('station_lon', float), ('phone', _str), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
 arr = np.array([tuple(s.get(n, "" if t is _str else np.nan) for n, t in dtype) for s in stations], dtype=dtype)
 

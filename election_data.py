@@ -42,7 +42,7 @@ def load(fileorurl):
 			                    quoting=csv.QUOTE_NONE)
 			it = iter(rd)
 			first = next(it)
-			dtype = [(toident(name), '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else '<U128') for name, value in zip(rd.fieldnames, first.values())]
+			dtype = [(toident(name), '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else '<U512') for name, value in zip(rd.fieldnames, first.values())]
 			table = np.array([tuple(first.values())], dtype=dtype)
 			for i, row in enumerate(it, start=1):
 				if i >= len(table):
