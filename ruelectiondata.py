@@ -22,14 +22,39 @@ args = parser.parse_args()
 
 read_all_lines = lambda file_path: list(filter(bool, (urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8').split('\n')))
 glossary = json.load(open(args.glossary))
-protocols = list(map(json.loads, read_all_lines(args.protocols_jsonl)))
+protocols = map(json.loads, read_all_lines(args.protocols_jsonl))
 ik_turnouts = {''.join(s['loc']) : s for s in map(json.loads, read_all_lines(args.turnouts_jsonl))}
-#uiks_from_cikrf = list(map(json.loads, read_all_lines(args.uiks_from_cikrf_json)))
+uiks_from_cikrf = map(json.loads, read_all_lines(args.precincts_jsonl))
+
+bad = collections.defaultdict(set)
+
+coord = lambda s: float(s.replace(' ', '')) if s else np.nan
+locations = {}
+for u in uiks_from_cikrf:
+	region = ([k for k, v in glossary['regions'].items() for vv in v if vv in u['region']] + [None])[0]
+	number = int(''.join(c for c in u['text'] if c.isdigit()))
+
+	if region is None:
+		bad['regions'].add(u['region'])
+
+	precinct = {}
+	precinct['commission_address'] = u['address'].strip().replace('\t', ' ')
+	assert len(precinct['commission_address']) <= 512
+	precinct['commission_lat'] = coord(u['coords']['lat'])
+	precinct['commission_lon'] = coord(u['coords']['lon'])
+	precinct['station_address'] = u['voteaddress'].strip().replace('\t', ' ')
+	assert len(precinct['station_address']) <= 512
+	precinct['station_lat'] = coord(u['votecoords']['lat'])
+	precinct['station_lon'] = coord(u['votecoords']['lon'])
+	precinct['members'] = [{'name': m['ФИО'],
+	                        'position': {'Председатель': 'chairman', 'Зам.председателя': 'vice-chairman', 'Секретарь': 'secretary', 'Член': 'member'}[m['Статус']],
+	                        'delegated_by': m['Кем предложен в состав комиссии']}
+	                       for m in u['members']]
+
+	locations[(region, number)] = precinct
 
 sum_or_none = lambda xs: None if all(x is None for x in xs) else sum(x for x in xs if x is not None)
 letters = lambda s: ''.join(c for c in s if c.isalpha() or c.isspace())
-
-bad = collections.defaultdict(set)
 
 stations = []
 for p in protocols:
@@ -73,7 +98,12 @@ for p in protocols:
 	p['loc'][-1] = uik_name + ' ' + p['loc'][-1]
 	station['turnouts'] = {k.replace('.', ':') : v for k, v in ik_turnouts.get(''.join(p['loc']), dict(turnouts = {}))['turnouts'].items()} or None
 
+	station.update(locations.pop((station['region_code'], station['uik_num']), {}))
+
 	stations.append(station)
+
+for k in locations.keys():
+	bad['precincts'].add(k)
 
 for k in bad:
 	bad[k] = list(sorted(bad[k]))
@@ -94,11 +124,11 @@ for s in stations:
 	for k, v in vote_kv.items():
 		s[k] = (s['vote'] or {}).get(v, 0)
 
-_str = 'U128'
-dtype = [('election_name', _str), ('region_name', _str), ('region_code', _str), ('tik_name', _str), ('uik_num', int), ('tik_num', int), ('region_num', int), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int), ('foreign', bool)] + [(k, float) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
-arr = np.array([tuple(s[n] for n, t in dtype) for s in stations], dtype = dtype)
+_str = 'U512'
+dtype = [('election_name', _str), ('region_num', int), ('region_code', _str), ('region_name', _str), ('tik_num', int), ('tik_name', _str), ('uik_num', int), ('foreign', bool), ('commission_address', _str), ('commission_lat', float), ('commission_lon', float), ('station_address', _str), ('station_lat', float), ('station_lon', float), ('phone', _str), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
+arr = np.array([tuple(s.get(n, "" if t is _str else np.nan) for n, t in dtype) for s in stations], dtype=dtype)
 
 if args.npz is not None:
 	np.savez_compressed(args.npz, arr)
 
-np.savetxt(args.tsv, arr, comments='', header='\t'.join(arr.dtype.names), fmt='\t'.join({int: '%d', bool: '%d', _str: '%s', float: '%.4f'}[t] for n, t in dtype), delimiter='\t', newline='\r\n', encoding = 'utf-8')
+np.savetxt(args.tsv, arr, comments='', header='\t'.join(arr.dtype.names), fmt='\t'.join({int: '%d', bool: '%d', _str: '%s', float: '%.6f', np.float32: '%.4f'}[t] for n, t in dtype), delimiter='\t', newline='\r\n', encoding='utf-8')
