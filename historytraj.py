@@ -17,7 +17,7 @@ def plot(title, D, hours_begin = 8.00, hours_end = 20.00):
 	plt.gca().add_collection(matplotlib.collections.LineCollection(np.dstack([np.broadcast_to(time, turnout.shape), turnout * 100])))
 	plt.xlim([hours_begin - 1, hours_end + 1])
 	plt.ylim([0, 100 + 5])
-	plt.vlines(time, *plt.ylim())
+	plt.vlines(time[1:], *plt.ylim())
 
 if __name__ == '__main__':
 	import os
