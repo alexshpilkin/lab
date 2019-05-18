@@ -20,7 +20,7 @@ parser.add_argument('--tsv')
 parser.add_argument('--bad-json')
 args = parser.parse_args()
 
-read_all_lines = lambda file_path: list(filter(bool, (urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8').split('\n')))
+read_all_lines = lambda file_path: filter(bool, (urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8').split('\n'))
 glossary = json.load(open(args.glossary))
 protocols = map(json.loads, read_all_lines(args.protocols_jsonl))
 ik_turnouts = {''.join(s['loc']) : s for s in map(json.loads, read_all_lines(args.turnouts_jsonl))}
@@ -39,11 +39,9 @@ for u in uiks_from_cikrf:
 
 	precinct = {}
 	precinct['commission_address'] = u['address'].strip().replace('\t', ' ')
-	assert len(precinct['commission_address']) <= 512
 	precinct['commission_lat'] = coord(u['coords']['lat'])
 	precinct['commission_lon'] = coord(u['coords']['lon'])
 	precinct['station_address'] = u['voteaddress'].strip().replace('\t', ' ')
-	assert len(precinct['station_address']) <= 512
 	precinct['station_lat'] = coord(u['votecoords']['lat'])
 	precinct['station_lon'] = coord(u['votecoords']['lon'])
 	precinct['members'] = [{'name': m['ФИО'],
@@ -124,11 +122,15 @@ for s in stations:
 	for k, v in vote_kv.items():
 		s[k] = (s['vote'] or {}).get(v, 0)
 
-_str = 'U512'
-dtype = [('election_name', _str), ('region_num', int), ('region_code', _str), ('region_name', _str), ('tik_num', int), ('tik_name', _str), ('uik_num', int), ('foreign', bool), ('commission_address', _str), ('commission_lat', float), ('commission_lon', float), ('station_address', _str), ('station_lat', float), ('station_lon', float), ('phone', _str), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
-arr = np.array([tuple(s.get(n, "" if t is _str else np.nan) for n, t in dtype) for s in stations], dtype=dtype)
+field_string_type = lambda field: 'U' + str(max(len(s.get(field, '')) for s in stations))
+dtype = [('election_name', field_string_type('election_name')), ('region_name', field_string_type('region_name')), ('tik_name', field_string_type('tik_name')), ('region_code', field_string_type('region_code')),('commission_address', field_string_type('commission_address')), ('station_address', field_string_type('station_address')), ('region_num', int), ('tik_num', int), ('uik_num', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
+
 
 if args.npz is not None:
+	dtype_no_address = [(n, t) for n, t in dtype if 'address' not in n]
+	arr = np.array([tuple(s.get(n, "" if isinstance(t, str) else np.nan) for n, t in dtype_no_address) for s in stations], dtype=dtype_no_address)
 	np.savez_compressed(args.npz, arr)
 
-np.savetxt(args.tsv, arr, comments='', header='\t'.join(arr.dtype.names), fmt='\t'.join({int: '%d', bool: '%d', _str: '%s', float: '%.6f', np.float32: '%.4f'}[t] for n, t in dtype), delimiter='\t', newline='\r\n', encoding='utf-8')
+if args.tsv is not None:
+	arr = np.array([tuple(s.get(n, "" if isinstance(t, str) else np.nan) for n, t in dtype) for s in stations], dtype=dtype)
+	np.savetxt(args.tsv, arr, comments='', header='\t'.join(arr.dtype.names), fmt='\t'.join({int: '%d', bool: '%d', float: '%.6f', np.float32: '%.4f'}.get(t, '%s') for n, t in dtype), delimiter='\t', newline='\r\n', encoding='utf-8')

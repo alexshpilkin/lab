@@ -6,7 +6,7 @@ import urllib.request
 import numpy as np
 
 
-COLUMNS = ('leader', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'region', 'territory', 'precinct', 'foreign')
+COLUMNS = ('leader', 'region_code', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'region', 'territory', 'precinct', 'foreign')
 
 TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
             'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
@@ -50,19 +50,22 @@ def load(fileorurl):
 				table[i] = tuple(row.values())
 			table.resize(i)
 		
-	leader = table[[n for n in table.dtype.names if 'putin' in n][0]]
+	leader = table[[n for n in table.dtype.names if 'putin' in n or 'medvedev' in n][0]]
 	territory = np.chararray.replace(table['tik_name'], 'Территориальная избирательная комиссия', 'ТИК')
 
 	columns = list(COLUMNS)
-	arrays  = [leader, table['voters_registered'], table['voters_voted'], table['ballots_valid'] + table['ballots_invalid'], table['region_name'], territory, table['uik_num'], table['foreign']]
+	arrays  = [leader, table['region_code'], table['voters_registered'], table['voters_voted'], table['ballots_valid'] + table['ballots_invalid'], table['region_name'], territory, table['uik_num'], table['foreign']]
 	for name in table.dtype.fields:
 		if not name.startswith('turnout_'): continue
 		columns.append(name)
 		arrays.append(table[name])
 	return np.rec.fromarrays(arrays, names=columns)
 
-def filter(D, region=None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
+def filter(D, region=None, region_code = None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
 	idx = np.full(len(D), True)
+
+	if region_code:
+		idx &= D.region_code == region_code
 
 	if region:
 		idx &= D.region == region
