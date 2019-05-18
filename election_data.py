@@ -5,9 +5,6 @@ import unicodedata
 import urllib.request
 import numpy as np
 
-
-COLUMNS = ('leader', 'region_code', 'voters_registered', 'voters_voted', 'ballots_valid_invalid', 'region', 'territory', 'precinct', 'foreign')
-
 TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
             'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
             'ABVGDEËŽZIJKLMNOPRSTUFHCČŠŜ"Y\'ÈÛÂ'
@@ -52,14 +49,10 @@ def load(fileorurl):
 		
 	leader = table[[n for n in table.dtype.names if 'putin' in n or 'medvedev' in n][0]]
 	territory = np.chararray.replace(table['tik_name'], 'Территориальная избирательная комиссия', 'ТИК')
+	extra = dict(ballots_valid_invalid = table['ballots_valid'] + table['ballots_invalid'], leader = leader, territory = territory, precinct = table['uik_num'])
 
-	columns = list(COLUMNS)
-	arrays  = [leader, table['region_code'], table['voters_registered'], table['voters_voted'], table['ballots_valid'] + table['ballots_invalid'], table['region_name'], territory, table['uik_num'], table['foreign']]
-	for name in table.dtype.fields:
-		if not name.startswith('turnout_'): continue
-		columns.append(name)
-		arrays.append(table[name])
-	return np.rec.fromarrays(arrays, names=columns)
+	names = table.dtype.names + tuple(extra.keys())
+	return np.rec.fromarrays([table[n] if n in table.dtype.names else extra[n] for n in names], names=names)
 
 def filter(D, region=None, region_code = None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
 	idx = np.full(len(D), True)
