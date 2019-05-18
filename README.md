@@ -4,7 +4,7 @@ report mode: https://definitely-staging.iodide.io/notebooks/37/?viewMode=report
 code: https://definitely-staging.iodide.io/notebooks/37/
 
 # todo
-- эволюция единичных участков в осях явка-время
+- расчёт финальной явки
 - поддержка вместо результата
 - монте-карло гистограммы и просто кол-ва целочисленных участков
 - эллипс mcd
