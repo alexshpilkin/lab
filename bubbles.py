@@ -66,11 +66,10 @@ if __name__ == '__main__':
 	if not os.path.exists(args.output):
 		os.mkdir(args.output)
 
-	for region in np.unique(D.region):
-		name = election_data.toident(region)
-		print(region, flush=True)
+	for region_name in np.unique(D.region_name):
+		print(region_name, flush=True)
 		plt.figure(figsize=(12, 4))
-		plot(election_data.translit(region), election_data.filter(D, region=region))
-		plt.savefig(os.path.join(args.output, name + '.png'),
+		plot(election_data.translit(region_name), election_data.filter(D, region_name=region_name))
+		plt.savefig(os.path.join(args.output, election_data.toident(region_name) + '.png'),
 		            bbox_inches='tight', dpi=args.dpi)
 		plt.close()

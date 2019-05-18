@@ -49,19 +49,19 @@ def load(fileorurl):
 		
 	leader = table[[n for n in table.dtype.names if 'putin' in n or 'medvedev' in n][0]]
 	territory = np.chararray.replace(table['tik_name'], 'Территориальная избирательная комиссия', 'ТИК')
-	extra = dict(region = table['region_name'], ballots_valid_invalid = table['ballots_valid'] + table['ballots_invalid'], leader = leader, territory = territory, precinct = table['uik_num'])
+	extra = dict(ballots_valid_invalid = table['ballots_valid'] + table['ballots_invalid'], leader = leader, territory = territory, precinct = table['uik_num'])
 
 	names = table.dtype.names + tuple(extra.keys())
 	return np.rec.fromarrays([table[n] if n in table.dtype.names else extra[n] for n in names], names=names)
 
-def filter(D, region=None, region_code = None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
+def filter(D, region_name=None, region_code = None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
 	idx = np.full(len(D), True)
 
 	if region_code:
 		idx &= D.region_code == region_code
 
-	if region:
-		idx &= D.region == region
+	if region_name:
+		idx &= D.region_name == region_name
 
 	if voters_registered_min is not None:
 		idx &= D.voters_registered >= voters_registered_min
