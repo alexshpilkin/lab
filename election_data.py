@@ -49,7 +49,7 @@ def load(fileorurl):
 		
 	leader = table[[n for n in table.dtype.names if 'putin' in n or 'medvedev' in n][0]]
 	territory = np.chararray.replace(table['tik_name'], 'Территориальная избирательная комиссия', 'ТИК')
-	extra = dict(ballots_valid_invalid = table['ballots_valid'] + table['ballots_invalid'], leader = leader, territory = territory, precinct = table['uik_num'])
+	extra = dict(region = table['region_name'], ballots_valid_invalid = table['ballots_valid'] + table['ballots_invalid'], leader = leader, territory = territory, precinct = table['uik_num'])
 
 	names = table.dtype.names + tuple(extra.keys())
 	return np.rec.fromarrays([table[n] if n in table.dtype.names else extra[n] for n in names], names=names)
