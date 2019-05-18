@@ -14,7 +14,7 @@ def plot(title, D, hours_origin = 8.00):
 	plt.xlabel('Time')
 	plt.ylabel('Turnout %')
 	plt.gca().add_collection(matplotlib.collections.LineCollection(np.dstack([np.broadcast_to(time, turnout.shape), turnout * 100])))
-	plt.xlim([7, 24])
+	plt.xlim([hours_origin - 1, 24])
 	plt.ylim([0, 100 + 5])
 
 if __name__ == '__main__':
