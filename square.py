@@ -10,7 +10,7 @@ import election_data
 # * Significance-2016: binwidth=0.25, addNoise=True,  weights='ones',   minsize = 0
 # * Significance-2018: binwidth=0.1,  addNoise=True,  weights='ones',   minsize = 0
 
-def histogram(D, *, binwidth, weights='voters', minsize=0, noise=False, seed=1):
+def histogram(D, *, binwidth = 0.25, weights='voters', minsize=0, noise=False, seed=1):
   rnd = np.random.RandomState(seed)
   edges = np.arange(-binwidth/2, 100 + binwidth/2, binwidth)
   centers = np.arange(0, 100, binwidth)
