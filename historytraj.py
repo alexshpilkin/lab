@@ -6,15 +6,16 @@ import numpy as np
 
 import election_data
 
-def plot(title, D, hours_begin = 8.00, hours_end = 20.00):
+def plot(title, D, hours_begin = 8.00, hours_end = 20.00, linewidth = 0.05):
 	turnout = np.vstack([D[n] for n in D.dtype.names if 'turnout_' in n]).T
 	turnout = np.hstack([np.zeros_like(turnout[:, :1]), turnout])
+	#turnout = np.diff(turnout, prepend = turnout[:, :1])
 	time = [hours_begin] + [float(n.replace('turnout_', '').replace('h', '.')) for n in D.dtype.names if 'turnout_' in n]
 
 	plt.title(title)
 	plt.xlabel('Time')
 	plt.ylabel('Turnout %')
-	plt.gca().add_collection(matplotlib.collections.LineCollection(np.dstack([np.broadcast_to(time, turnout.shape), turnout * 100])))
+	plt.gca().add_collection(matplotlib.collections.LineCollection(np.dstack([np.broadcast_to(time, turnout.shape), turnout * 100]), linewidth = linewidth))
 	plt.xlim([hours_begin - 1, hours_end + 1])
 	plt.ylim([0, 100 + 5])
 	plt.vlines(time[1:], *plt.ylim())
