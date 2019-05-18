@@ -103,11 +103,9 @@ for p in protocols:
 for k in locations.keys():
 	bad['precincts'].add(k)
 
-for k in bad:
-	bad[k] = list(sorted(bad[k]))
 if args.bad_json is not None:
 	with open(args.bad_json, 'w', newline='\r\n') as file:
-		json.dump(bad, file, ensure_ascii=False, indent=2, sort_keys=True)
+		json.dump({k : list(sorted(v)) for k, v in bad.items()}, file, ensure_ascii=False, indent=2, sort_keys=True)
 
 if args.json is not None:
 	with open(args.json, 'w', newline='\r\n') as file:
