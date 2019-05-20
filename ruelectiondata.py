@@ -86,7 +86,7 @@ for p in protocols:
 	station['uik_num'] = int(uik_name)
 	station['region_num'] = region_num
 	station['tik_num']  = int(tik_num)
-	station['tik_name'] = tik_name
+	station['tik_name'] = tik_name.replace('Территориальная избирательная комиссия', 'ТИК')
 	station['vote'] = {k_ : int(v) for k, v in lines.items() for k_ in [letters(k)] if k_.istitle()}
 	station['voters_voted_early'] = station.get('voters_voted_early', 0)
 	station['voters_voted_outside_station'] = station.get('voters_voted_outside_station', 0)
