@@ -6,11 +6,13 @@ import numpy as np
 
 import election_data
 
-def plot(title, D, hours_begin = 8.00, hours_end = 20.00, linewidth = 0.05):
-	turnout = np.vstack([D[n] for n in D.dtype.names if 'turnout_' in n]).T
+def plot(title, D, hours_begin = 8.00, hours_end = 20.00, linewidth = 0.05, diff = False):
+	turnout = np.vstack([D[n] for n in D.dtype.names if 'turnout_' in n] + [D.turnout]).T
 	turnout = np.hstack([np.zeros_like(turnout[:, :1]), turnout])
-	#turnout = np.diff(turnout, prepend = turnout[:, :1])
-	time = [hours_begin] + [float(n.replace('turnout_', '').replace('h', '.')) for n in D.dtype.names if 'turnout_' in n]
+	if diff:
+		turnout = np.diff(turnout, prepend = turnout[:, :1])
+
+	time = [hours_begin] + [float(n.replace('turnout_', '').replace('h', '.')) for n in D.dtype.names if 'turnout_' in n] + [hours_end]
 
 	plt.title(title)
 	plt.xlabel('Time')
