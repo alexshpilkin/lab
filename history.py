@@ -21,7 +21,7 @@ def histogram(D, *, binwidth=0.25, minsize=0, seed=1):
 		ls[n] = centers[np.argmax(h)], np.max(h)
 	return centers, hs, ls
 
-def plot(title, D, **kwargs):
+def plot(D, title, **kwargs):
 	centers, hs, ls = histogram(D, **kwargs)
 	binwidth = centers[1] - centers[0]
 
@@ -52,6 +52,6 @@ if __name__ == '__main__':
 	D = election_data.load(args.data)
 
 	plt.figure(figsize=(12, 4))
-	plot(os.path.basename(args.data), D, binwidth=args.bin_width, minsize=args.min_size)
+	plot(D, title=os.path.basename(args.data), binwidth=args.bin_width, minsize=args.min_size)
 	plt.savefig(args.output, bbox_inches='tight', dpi=args.dpi)
 	plt.close()

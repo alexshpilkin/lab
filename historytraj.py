@@ -6,7 +6,7 @@ import numpy as np
 
 import election_data
 
-def plot(title, D, hours_begin = 8.00, hours_end = 20.00, linewidth = 0.02):
+def plot(D, title, hours_begin = 8.00, hours_end = 20.00, linewidth = 0.02):
 	time = [hours_begin] + [float(n.replace('turnout_', '').replace('h', '.')) for n in D.dtype.names if 'turnout_' in n] + [hours_end]
 	turnout = np.vstack([D[n] for n in D.dtype.names if 'turnout_' in n] + [D.turnout]).T
 	turnout = np.hstack([np.zeros_like(turnout[:, :1]), turnout])
@@ -40,7 +40,7 @@ if __name__ == '__main__':
 	for region_code in np.unique(D.region_code):
 		print(region_code)
 		plt.figure(figsize=(12, 8))
-		plot(region_code, election_data.filter(D, region_code=region_code))
+		plot(election_data.filter(D, region_code=region_code), title = region_code)
 		plt.savefig(os.path.join(args.output, region_code + '.png'),
 		            bbox_inches='tight', dpi=args.dpi)
 		plt.close()

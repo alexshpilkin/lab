@@ -17,7 +17,7 @@ def rlencode(inarray):  # Run-length encoding, <https://stackoverflow.com/a/3268
 		p = np.cumsum(np.append(0, z))[:-1] # positions
 		return (z, p, ia[i])
 
-def plot(title, D, unit=1000):
+def plot(D, title, unit=1000):
 	tlen, tidx, terr = rlencode(D.territory)
 	tsum = np.insert(np.cumsum(tlen), 0, 0)
 	assert np.unique(terr).shape == terr.shape
@@ -69,7 +69,7 @@ if __name__ == '__main__':
 	for region_name in np.unique(D.region_name):
 		print(region_name, flush=True)
 		plt.figure(figsize=(12, 4))
-		plot(election_data.translit(region_name), election_data.filter(D, region_name=region_name))
+		plot(election_data.filter(D, title=election_data.translit(region_name), region_name=region_name))
 		plt.savefig(os.path.join(args.output, election_data.toident(region_name) + '.png'),
 		            bbox_inches='tight', dpi=args.dpi)
 		plt.close()
