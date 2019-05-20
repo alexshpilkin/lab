@@ -6,21 +6,19 @@ import numpy as np
 
 import election_data
 
-def plot(title, D, hours_begin = 8.00, hours_end = 20.00, linewidth = 0.05, diff = False):
+def plot(title, D, hours_begin = 8.00, hours_end = 20.00, linewidth = 0.02):
+	time = [hours_begin] + [float(n.replace('turnout_', '').replace('h', '.')) for n in D.dtype.names if 'turnout_' in n] + [hours_end]
 	turnout = np.vstack([D[n] for n in D.dtype.names if 'turnout_' in n] + [D.turnout]).T
 	turnout = np.hstack([np.zeros_like(turnout[:, :1]), turnout])
-	if diff:
-		turnout = np.diff(turnout, prepend = turnout[:, :1])
-
-	time = [hours_begin] + [float(n.replace('turnout_', '').replace('h', '.')) for n in D.dtype.names if 'turnout_' in n] + [hours_end]
-
-	plt.title(title)
-	plt.xlabel('Time')
-	plt.ylabel('Turnout %')
-	plt.gca().add_collection(matplotlib.collections.LineCollection(np.dstack([np.broadcast_to(time, turnout.shape), turnout * 100]), linewidth = linewidth))
-	plt.xlim([hours_begin - 1, hours_end + 1])
-	plt.ylim([0, 100 + 5])
-	plt.vlines(time[1:], *plt.ylim())
+	plt.suptitle(title)
+	for subplot, diff, xlabel, ylabel  in [(211, False, '', 'Turnout %'), (212, True, 'Time', 'Turnout increase %')]:
+		plt.subplot(subplot)
+		plt.xlabel(xlabel)
+		plt.ylabel(ylabel)
+		plt.gca().add_collection(matplotlib.collections.LineCollection(np.dstack([np.broadcast_to(time, turnout.shape), (np.diff(turnout, prepend = turnout[:, :1]) if diff else turnout) * 100]), linewidth = linewidth))
+		plt.xlim([hours_begin - 1, hours_end + 1])
+		plt.ylim([0, 100 + 5])
+		plt.vlines(time[1:], *plt.ylim())
 
 if __name__ == '__main__':
 	import os
@@ -41,7 +39,7 @@ if __name__ == '__main__':
 
 	for region_code in np.unique(D.region_code):
 		print(region_code)
-		plt.figure(figsize=(12, 4))
+		plt.figure(figsize=(12, 8))
 		plot(region_code, election_data.filter(D, region_code=region_code))
 		plt.savefig(os.path.join(args.output, region_code + '.png'),
 		            bbox_inches='tight', dpi=args.dpi)
