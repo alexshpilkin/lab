@@ -15,7 +15,7 @@ def plot(D, title, hours_begin = 8.00, hours_end = 20.00, linewidth = 0.02):
 		plt.subplot(subplot)
 		plt.xlabel(xlabel)
 		plt.ylabel(ylabel)
-		plt.gca().add_collection(matplotlib.collections.LineCollection(np.dstack([np.broadcast_to(time, turnout.shape), (np.diff(turnout, prepend = turnout[:, :1]) if diff else turnout) * 100]), linewidth = linewidth))
+		plt.gca().add_collection(matplotlib.collections.LineCollection(np.dstack([np.broadcast_to(time, turnout.shape), (np.hstack([turnout[:, :1], np.diff(turnout)]) if diff else turnout) * 100]), linewidth = linewidth))
 		plt.xlim([hours_begin - 1, hours_end + 1])
 		plt.ylim([0, 100 + 5])
 		plt.vlines(time[1:], *plt.ylim())
