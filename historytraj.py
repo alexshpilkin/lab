@@ -18,9 +18,8 @@ def plot(D, title, hours_begin = 8.00, hours_end = 20.00, linewidth = 0.02):
 		plt.gca().add_collection(matplotlib.collections.LineCollection(np.dstack([np.broadcast_to(time, turnout.shape), (np.hstack([turnout[:, :1], np.diff(turnout)]) if diff else turnout) * 100]), linewidth = linewidth))
 		plt.xlim([hours_begin - 1, hours_end + 1])
 		plt.ylim([0, 100 + 5])
-		for t in time:
-			plt.axvline(t, 0, 1, linewidth=.5, color='black')
-		plt.xticks(time)
+		plt.vlines(time[1:],*plt.ylim(), linewidth=.5, color='black')
+		plt.xticks(time, map('{:.0f}:00'.format, time))
 
 if __name__ == '__main__':
 	import os
@@ -40,7 +39,7 @@ if __name__ == '__main__':
 	D = election_data.load(args.data)
 	R = election_data.regions(D)
 
-	for region_code in np.unique(D.region_code):
+	for region_code in R:
 		print(region_code)
 		plt.figure(figsize=(12, 8))
 		plot(election_data.filter(D, region_code=region_code), title = R[region_code])
