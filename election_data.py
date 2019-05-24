@@ -76,3 +76,6 @@ def filter(D, region_name=None, region_code = None, voters_registered_min=None, 
 		idx &= D.foreign == foreign
 
 	return D[idx]
+
+def regions(D):
+	return dict(np.unique(D[['region_code', 'region_name']], axis = 0).tolist())

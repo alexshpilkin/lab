@@ -36,11 +36,12 @@ if __name__ == '__main__':
 		os.mkdir(args.output)
 
 	D = election_data.load(args.data)
+	R = election_data.regions(D)
 
 	for region_code in np.unique(D.region_code):
 		print(region_code)
 		plt.figure(figsize=(12, 8))
-		plot(election_data.filter(D, region_code=region_code), title = region_code)
+		plot(election_data.filter(D, region_code=region_code), title = R[region_code])
 		plt.savefig(os.path.join(args.output, region_code + '.png'),
 		            bbox_inches='tight', dpi=args.dpi)
 		plt.close()
