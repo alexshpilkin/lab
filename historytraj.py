@@ -18,7 +18,9 @@ def plot(D, title, hours_begin = 8.00, hours_end = 20.00, linewidth = 0.02):
 		plt.gca().add_collection(matplotlib.collections.LineCollection(np.dstack([np.broadcast_to(time, turnout.shape), (np.hstack([turnout[:, :1], np.diff(turnout)]) if diff else turnout) * 100]), linewidth = linewidth))
 		plt.xlim([hours_begin - 1, hours_end + 1])
 		plt.ylim([0, 100 + 5])
-		plt.vlines(time[1:], *plt.ylim())
+		for t in time:
+			plt.axvline(t, 0, 1, linewidth=.5, color='black')
+		plt.xticks(time)
 
 if __name__ == '__main__':
 	import os
