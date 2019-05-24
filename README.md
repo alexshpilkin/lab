@@ -4,7 +4,6 @@ report mode: https://definitely-staging.iodide.io/notebooks/37/?viewMode=report
 code: https://definitely-staging.iodide.io/notebooks/37/
 
 # todo
-- расчёт финальной явки
 - поддержка вместо результата
 - монте-карло гистограммы и просто кол-ва целочисленных участков
 - эллипс mcd
@@ -12,7 +11,7 @@ code: https://definitely-staging.iodide.io/notebooks/37/
 - разница между фактическим и ожидаемым результатом по целым значениям (fig. 3) по регионам
 
 # глоссарий
-**region_name** - unicode строка, человекочитаемое название региона
+**region_name** - unicode строка, человекочитаемое нормализованное название региона
 
 **region_code** - ascii строка, короткий код региона (в редких случаях административной единицы). предполагается, что эти коды из ISO_3166-2, возможно, с небольшими расширениями
 
@@ -35,4 +34,10 @@ https://habr.com/en/post/354020/
 
 https://corbulon.livejournal.com/175917.html https://corbulon.livejournal.com/177010.html
 
-https://elections.dekoder.org/ukraine/ua http://texty.org.ua/d/2019/president_elections_v2/
+https://lleo.me/dnevnik/2017/09/11_1.html
+
+#### Карты
+- https://elections.dekoder.org/ukraine/ua
+- http://texty.org.ua/d/2019/president_elections_v2/
+- https://habr.com/ru/company/ods/blog/338554/
+
