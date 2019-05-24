@@ -120,9 +120,8 @@ for s in stations:
 	for k, v in vote_kv.items():
 		s[k] = (s['vote'] or {}).get(v, 0)
 
-field_string_type = lambda field: 'U' + str(max(len(s.get(field, '')) for s in stations))
-dtype = [('election_name', field_string_type('election_name')), ('region_name', field_string_type('region_name')), ('tik_name', field_string_type('tik_name')), ('region_code', field_string_type('region_code')),('commission_address', field_string_type('commission_address')), ('station_address', field_string_type('station_address')), ('region_num', int), ('tik_num', int), ('uik_num', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
-
+field_string_type = lambda field: ('S' if all(s.get(field, '').isascii() for s in stations) else 'U') + str(max(len(s.get(field, '')) for s in stations))
+dtype = [(field, field_string_type(field)) for field in ['region_code', 'region_name', 'election_name', 'tik_name', 'commission_address', 'station_address']] + [('tik_num', int), ('uik_num', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
 
 if args.npz is not None:
 	dtype_no_address = [(n, t) for n, t in dtype if 'address' not in n]
