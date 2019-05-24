@@ -69,7 +69,7 @@ if __name__ == '__main__':
 	for region_name in np.unique(D.region_name):
 		print(region_name, flush=True)
 		plt.figure(figsize=(12, 4))
-		plot(election_data.filter(D, title=election_data.translit(region_name), region_name=region_name))
+		plot(election_data.filter(D, region_name=region_name), title=election_data.translit(region_name))
 		plt.savefig(os.path.join(args.output, election_data.toident(region_name) + '.png'),
 		            bbox_inches='tight', dpi=args.dpi)
 		plt.close()

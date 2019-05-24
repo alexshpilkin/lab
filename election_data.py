@@ -1,3 +1,4 @@
+import re
 import csv
 import gzip
 import io
@@ -39,7 +40,7 @@ def load(fileorurl):
 			                    quoting=csv.QUOTE_NONE)
 			it = iter(rd)
 			first = next(it)
-			dtype = [(toident(name), '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else '<U512') for name, value in zip(rd.fieldnames, first.values())]
+			dtype = [(name, '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else '<U512') for name, value in zip(rd.fieldnames, first.values())]
 			table = np.array([tuple(first.values())], dtype=dtype)
 			for i, row in enumerate(it, start=1):
 				if i >= len(table):
@@ -54,7 +55,7 @@ def load(fileorurl):
 	names = table.dtype.names + tuple(extra.keys())
 	return np.rec.fromarrays([table[n] if n in table.dtype.names else extra[n] for n in names], names=names)
 
-def filter(D, region_name=None, region_code = None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
+def filter(D, region_code=None, region_name=None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
 	idx = np.full(len(D), True)
 
 	if region_code:
@@ -79,3 +80,14 @@ def filter(D, region_name=None, region_code = None, voters_registered_min=None, 
 
 def regions(D):
 	return dict(np.unique(D[['region_code', 'region_name']], axis = 0).tolist())
+
+def electoral_id(electoral_id = None, *, region_code = None, date = None, election_name = None):
+	fields = dict(
+		region_code = r'[A-Z]{2}(-[A-Z]{3})?',
+		date = r'\d{4}-\d{2}-\d{2}',
+		election_name = r'[a-z]+'
+	)
+	if electoral_id:
+		return {k : f for f in electoral_id.split('_') for k, r in fields.items() if re.fullmatch(r, f)}
+	else:
+		return '_'.join(str(f) for f in [region_code, date, election_name] if f is not None)
