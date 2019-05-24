@@ -32,7 +32,7 @@ def histogram(D, *, binwidth = 0.25, weights='voters', minsize=0, noise=False, s
 
 def plot(D, title, cmap='viridis', **kwargs):
   wlbl, centers, h = histogram(D, **kwargs)
-  binwidth=centers[1] - centers[0]
+  binwidth = centers[1] - centers[0]
   ht = np.sum(h, axis=1)
   hr = np.sum(h, axis=0)
 
@@ -76,7 +76,7 @@ def plot(D, title, cmap='viridis', **kwargs):
                  labelright=False, labeltop=False, labelleft=True, labelbottom=False)
 
   ax = axs[1,0]
-  ax.imshow(h.T, vmin=0, vmax=np.quantile(h, 0.99), origin='lower', extent=[0,100,0,100], cmap=cmap, interpolation='none')
+  ax.imshow(h.T, vmin=0, vmax=np.quantile(h[h>0], 0.95), origin='lower', extent=[0,100,0,100], cmap=cmap, interpolation='none')
   ax.set_xlabel('Turnout %')
   ax.set_ylabel('Leader’s result %')
   ax.set_frame_on(False)
