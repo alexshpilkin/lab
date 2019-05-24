@@ -15,66 +15,83 @@ import election_data
 import square
 import bubbles
 import history
+import historytraj
 
 #matplotlib.rcParams['figure.dpi'] = 50
 
+class Figure(object):
+	def __init__(self, name, figsize = None):
+		self.name = name
+		self.figsize = figsize
+	def __enter__(self):
+		plt.figure(self.name, figsize = self.figsize)
+		plt.clf()
+	def __exit__(self, *args):
+		plt.show()
+
 def reinit_select(id, options, onchange):
+	value_text = lambda o: o if isinstance(o, tuple) else (o, o)
 	select = js.document.getElementById(id)
 	while len(select.options) > 0:
 		select.options.remove(0)
-	for value, innerText in options:
+	for value, innerText in map(value_text, options):
 		option = js.document.createElement('option')
 		option.value = value
 		option.innerText = innerText
 		select.options.add(option)
 	select.onchange = lambda event: onchange(event.target.value)
-	onchange(options[0][0])
-
-def plot(region):
-	D_ = election_data.filter(D, region = region)
-
-	plt.figure('square')
-	plt.clf()
-	square.plot(region or 'Country', D_, binwidth = 0.25)
-	plt.show()
-	plt.figure('bubbles')
-	plt.clf()
-	if region:
-		bubbles.plot(region, D_)
-	plt.show()
-	plt.figure('history')
-	plt.clf()
-	history.plot(region or 'Country', D_, binwidth = 0.25)
-	plt.show()
+	onchange(value_text(options[0])[0])
 %% md
 <h1>Select a dataset</h1>
 <select id="datasets" style="width:100%"></select>
 <select id="regions" style="width:100%"></select>
 <h1>Voting result and turnout</h1>
 %% py
-plt.figure('square'); plt.show()
+with Figure('square', figsize=(12, 12)): pass
+%% md
+<h1>Voting result and turnout (dynamics)</h1>
+%% py
+with Figure('history', figsize=(12,4)):	pass
 %% md
 <h1>Sorted voting stations</h1>
 %% py
-plt.figure('bubbles'); plt.show()
+with Figure('bubbles', figsize=(12,4)): pass
 %% md
-<h1>Turnout dynamics</h1>
+<h1>Turnout trajectories</h1>
 %% py
-plt.figure('history'); plt.show()
+with Figure('historytraj', figsize=(12,8)): pass
 %% py
 datasets = {
-	'2018/03/18 - Russia, presidential elections' : 'https://cors-anywhere.herokuapp.com/https://github.com/schitaytesami/lab/releases/download/data-v2/2018.npz'
+	'2018-03-18 - Russia, president' : 'https://cors-anywhere.herokuapp.com/https://github.com/schitaytesami/lab/releases/download/data-v2/2018.npz'
 }
-D = None
-regions = None
+
+D, R = None, None
 
 def ondatasetloaded(bytes):
-	global D, regions
+	global D, R
 	D = election_data.load(io.BytesIO(bytes))
-	regions = list(sorted(np.unique(D.region)))
-	reinit_select('regions', [('', 'Russia')] + regions, plot)
+	R = election_data.regions(D)
+	reinit_select('regions', [('', 'Country')] + list(sorted(R.items(), key = lambda t: t[1])), plot)
 
-def ondatasetchanged(dataset):
-	js.open_url_binary(datasets[dataset], ondatasetloaded)
-    
-reinit_select('datasets', [(dataset, dataset) for dataset in sorted(datasets)], ondatasetchanged)
+def ondatasetchanged(dataset_name):
+	js.open_url_binary(datasets[dataset_name], ondatasetloaded)
+
+def plot(region_code):
+	D_ = election_data.filter(D, region_code = region_code)
+	region_name = R[region_code] if region_code else 'Country'
+	
+	with Figure('square'):
+		square.plot(D_, title = region_name)
+
+	with Figure('history'):
+		history.plot(D_, title = region_name)
+
+	with Figure('bubbles'):
+		if region_code:
+			bubbles.plot(D_, title = region_name)
+
+	with Figure('historytraj'):
+		if region_code:
+			historytraj.plot(D_, title = region_name)
+
+reinit_select('datasets', sorted(datasets), ondatasetchanged)
