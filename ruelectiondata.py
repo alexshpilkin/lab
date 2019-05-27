@@ -18,6 +18,8 @@ parser.add_argument('--json')
 parser.add_argument('--npz')
 parser.add_argument('--tsv')
 parser.add_argument('--bad-json')
+parser.add_argument('--date', default = '2018-03-18')
+parser.add-argument('--election-name', default = 'president')
 args = parser.parse_args()
 
 read_all_lines = lambda file_path: filter(bool, (urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8').split('\n'))
@@ -84,7 +86,6 @@ for p in protocols:
 	station['election_name'] = election_name
 	station['region_name'] = glossary['regions'].get(station['region_code'], [region_name])[0]
 	station['uik_num'] = int(uik_name)
-	station['region_num'] = region_num
 	station['tik_num']  = int(tik_num)
 	station['tik_name'] = tik_name.replace('Территориальная избирательная комиссия', 'ТИК')
 	station['vote'] = {k_ : int(v) for k, v in lines.items() for k_ in [letters(k)] if k_.istitle()}
@@ -98,6 +99,7 @@ for p in protocols:
 
 	station.update(locations.pop((station['region_code'], station['uik_num']), {}))
 
+	station['electoral_id'] = election_data.electoral_id(region_code = station['region_code'], date = args.date, election_name = args.election_name)
 	stations.append(station)
 
 for k in locations.keys():
@@ -121,7 +123,7 @@ for s in stations:
 		s[k] = (s['vote'] or {}).get(v, 0)
 
 field_string_type = lambda field: ('S' if all(s.get(field, '').isascii() for s in stations) else 'U') + str(max(len(s.get(field, '')) for s in stations))
-dtype = [(field, field_string_type(field)) for field in ['region_code', 'region_name', 'election_name', 'tik_name', 'commission_address', 'station_address']] + [('tik_num', int), ('uik_num', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
+dtype = [(field, field_string_type(field)) for field in ['region_code', 'region_name', 'election_name', 'tik_name', 'commission_address', 'station_address', 'electoral_id']] + [('tik_num', int), ('uik_num', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
 
 if args.npz is not None:
 	dtype_no_address = [(n, t) for n, t in dtype if 'address' not in n]
