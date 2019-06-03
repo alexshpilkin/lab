@@ -81,13 +81,17 @@ def filter(D, region_code=None, region_name=None, voters_registered_min=None, vo
 def regions(D):
 	return dict(np.unique(D[['region_code', 'region_name']], axis = 0).tolist())
 
-def electoral_id(electoral_id = None, *, region_code = None, date = None, election_name = None):
+def electoral_id(electoral_id = None, *, region_code = None, date = None, election_name = None, territory = None, station = None, **extra):
 	fields = dict(
 		region_code = r'[A-Z]{2}(-[A-Z]{3})?',
 		date = r'\d{4}-\d{2}-\d{2}',
-		election_name = r'[a-z]+'
+		election_name = r'[a-z]+',
+		extra = r'([A-Z]+)[=]?([a-z0-9+]+)'
 	)
+	alias = dict(territory = ['T'], station = ['V'])
+	val = lambda val, int_or_str = (lambda x: int(x) if x.isdigit() else x): list(map(int_or_str, val.split('+'))) if '+' in val else int_or_str(val)
+	plusize = lambda k, val: alias.get(k, [k])[0] + '+'.join(map(str, val if isinstance(val, list) else [val]))
 	if electoral_id:
-		return {k : f for f in electoral_id.split('_') for k, r in fields.items() if re.fullmatch(r, f)}
+		return dict((k, f) if k != 'extra' else (([k for k, a in alias.items() if m.group(1) in a] + [k])[0], val(m.group(2))) for f in electoral_id.split('_') for k, r in fields.items() for m in [re.fullmatch(r, f)] if m is not None)
 	else:
-		return '_'.join(str(f) for f in [region_code, date, election_name] if f is not None)
+		return '_'.join(str(f) for f in [region_code, plusize('territory', territory) if territory else None, plusize('station', station) if station else None, date, election_name] + [plusize(k, v) if v else None for k, v in extra.items()] if f is not None)

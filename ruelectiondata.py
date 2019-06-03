@@ -87,19 +87,20 @@ for p in protocols:
 	station['region_name'] = glossary['regions'].get(station['region_code'], [region_name])[0]
 	station['uik_num'] = int(uik_name)
 	station['tik_num']  = int(tik_num)
-	station['tik_name'] = tik_name.replace('Территориальная избирательная комиссия', 'ТИК')
+	station['tik_name'] = tik_name.replace('Территориальная избирательная комиссия', 'ТИК').replace('города', 'г.').replace('района', 'р-на')
 	station['vote'] = {k_ : int(v) for k, v in lines.items() for k_ in [letters(k)] if k_.istitle()}
 	station['voters_voted_early'] = station.get('voters_voted_early', 0)
 	station['voters_voted_outside_station'] = station.get('voters_voted_outside_station', 0)
 	station['voters_voted'] = (station['voters_voted_at_station'] + station['voters_voted_early'] + station['voters_voted_outside_station']) if station.get('voters_voted_at_station') is not None else None
-	station['foreign'] = station['region_code'] == 'FRN'
+	station['foreign'] = station['region_code'] == 'RU-FRN'
 
 	p['loc'][-1] = uik_name + ' ' + p['loc'][-1]
 	station['turnouts'] = {k.replace('.', ':') : v for k, v in ik_turnouts.get(''.join(p['loc']), dict(turnouts = {}))['turnouts'].items()} or None
 
 	station.update(locations.pop((station['region_code'], station['uik_num']), {}))
 
-	station['electoral_id'] = election_data.electoral_id(region_code = station['region_code'], date = args.date, election_name = args.election_name)
+	station['electoral_id'] = election_data.electoral_id(region_code = station['region_code'], date = args.date, election_name = args.election_name, station = station['uik_num'], territory = station['tik_num'])
+
 	stations.append(station)
 
 for k in locations.keys():
