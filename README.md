@@ -15,6 +15,8 @@ code: https://definitely-staging.iodide.io/notebooks/37/
 
 **region_code** - ascii строка, короткий код региона (в редких случаях административной единицы). предполагается, что эти коды из ISO_3166-2, возможно, с небольшими расширениями
 
+**electoral_id** - ascii строка
+
 # links
 https://github.com/smacke/subsync
 https://github.com/facebookresearch/tdfbanks
