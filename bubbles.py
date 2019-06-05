@@ -57,19 +57,20 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument('data', nargs='?', metavar='DATA', default='https://github.com/schitaytesami/lab/releases/download/data-v2/2018.tsv.gz', help='Data file to use, in TSV, NPY or NPZ format')
-	parser.add_argument('--dpi', default=None, type=int, help='Resolution of the output images')
-	parser.add_argument('-o', '--output', default='bubbles', help='Output directory')
+	parser.add_argument('--dpi', default=None, type=int, help='Resolution of the output image')
+	parser.add_argument('-o', '--output', default='historytraj', help='Output directory')
 	args = parser.parse_args()
-
-	D = election_data.load(args.data)
-
+	
 	if not os.path.exists(args.output):
 		os.mkdir(args.output)
 
-	for region_name in np.unique(D.region_name):
-		print(region_name, flush=True)
-		plt.figure(figsize=(12, 4))
-		plot(election_data.filter(D, region_name=region_name), title=election_data.translit(region_name))
-		plt.savefig(os.path.join(args.output, election_data.toident(region_name) + '.png'),
+	D = election_data.load(args.data)
+	R = election_data.regions(D)
+
+	for region_code in R:
+		print(region_code)
+		plt.figure(figsize=(12, 8))
+		plot(election_data.filter(D, region_code=region_code), title = R[region_code])
+		plt.savefig(os.path.join(args.output, region_code + '.png'),
 		            bbox_inches='tight', dpi=args.dpi)
 		plt.close()
