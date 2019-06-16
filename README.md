@@ -38,6 +38,8 @@ https://corbulon.livejournal.com/175917.html https://corbulon.livejournal.com/17
 
 https://lleo.me/dnevnik/2017/09/11_1.html
 
+https://habr.com/ru/post/358790/  https://2018.krutika.ru/digits?r=bashkortostan,dagestan,karachaev-cherkess,tatarstan,krasnodar,stavropol,kemerovo,saratov
+
 #### Карты
 - https://elections.dekoder.org/ukraine/ua
 - http://texty.org.ua/d/2019/president_elections_v2/
