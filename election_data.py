@@ -19,7 +19,7 @@ def toident(s):
 	s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
 	return s.lower().replace(' ', '_').translate({ord(c) : None for c in ''',."'()'''})
 
-def load(fileorurl):
+def load(fileorurl, max_string_size = 64):
 	file = ((urllib.request.urlopen(fileorurl)
 	         if fileorurl.startswith('http')
 	         else open(fileorurl, 'rb'))
@@ -38,7 +38,7 @@ def load(fileorurl):
 			it = iter(rd)
 			fieldnames = next(it)
 			first = next(it)
-			dtype = [(name, '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else '<U512') for name, value in zip(fieldnames, first)]
+			dtype = [(name, '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else f'<U{max_string_size}') for name, value in zip(fieldnames, first)]
 			table = np.array([tuple(first)], dtype=dtype)
 			for i, row in enumerate(it, start=1):
 				if i >= len(table):
