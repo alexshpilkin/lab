@@ -33,19 +33,17 @@ def load(fileorurl):
 		elif file.peek(6).startswith(b'\x93NUMPY'):
 			table = np.load(io.BytesIO(file.read()))
 		else:
-			# https://www.iana.org/assignments/media-types/text/tab-separated-values
-			rd = csv.DictReader(io.TextIOWrapper(file, newline='\r\n'),
-			                    delimiter='\t',
-			                    lineterminator='\n',
-			                    quoting=csv.QUOTE_NONE)
+			#head = np.genfromtxt(io.BytesIO(b), max_rows = 2 if has_names else 1, delimiter = delimiter, names = True if has_names else None, dtype = None, encoding = encoding)
+			rd = csv.reader(io.TextIOWrapper(file), delimiter = '\t', lineterminator='\n')
 			it = iter(rd)
+			fieldnames = next(it)
 			first = next(it)
-			dtype = [(name, '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else '<U512') for name, value in zip(rd.fieldnames, first.values())]
-			table = np.array([tuple(first.values())], dtype=dtype)
+			dtype = [(name, '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else '<U512') for name, value in zip(fieldnames, first)]
+			table = np.array([tuple(first)], dtype=dtype)
 			for i, row in enumerate(it, start=1):
 				if i >= len(table):
-					table.resize(2*len(table))
-				table[i] = tuple(row.values())
+					table.resize(2 * len(table))
+				table[i] = tuple(int(v) if dtype[j][1][1] == 'i' else float(v) if dtype[j][1][1] == 'f' else v for j, v in enumerate(row))
 			table.resize(i)
 		
 	leader = table[[n for n in table.dtype.names if 'putin' in n or 'medvedev' in n][0]]

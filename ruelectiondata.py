@@ -19,7 +19,7 @@ parser.add_argument('--npz')
 parser.add_argument('--tsv')
 parser.add_argument('--bad-json')
 parser.add_argument('--date', default = '2018-03-18')
-parser.add-argument('--election-name', default = 'president')
+parser.add_argument('--election-name', default = 'president')
 args = parser.parse_args()
 
 read_all_lines = lambda file_path: filter(bool, (urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8').split('\n'))
@@ -122,8 +122,8 @@ for s in stations:
 		s[k] = (s['turnouts'] or {}).get(v, np.nan)
 	for k, v in vote_kv.items():
 		s[k] = (s['vote'] or {}).get(v, 0)
-
-field_string_type = lambda field: ('S' if all(s.get(field, '').isascii() for s in stations) else 'U') + str(max(len(s.get(field, '')) for s in stations))
+isascii = lambda s: len(s) == len(s.encode())
+field_string_type = lambda field: ('S' if all(isascii(s.get(field, '')) for s in stations) else 'U') + str(max(len(s.get(field, '')) for s in stations))
 dtype = [(field, field_string_type(field)) for field in ['region_code', 'region_name', 'election_name', 'tik_name', 'commission_address', 'station_address', 'electoral_id']] + [('tik_num', int), ('uik_num', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
 
 if args.npz is not None:
