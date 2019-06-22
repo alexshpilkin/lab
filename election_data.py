@@ -19,32 +19,27 @@ def toident(s):
 	s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
 	return s.lower().replace(' ', '_').translate({ord(c) : None for c in ''',."'()'''})
 
-def load(fileorurl, max_string_size = 64):
-	file = ((urllib.request.urlopen(fileorurl)
+def load(fileorurl, max_string_size = 64, encoding = 'utf-8'):
+	if isinstance(fileorurl, str):
+		file = ((urllib.request.urlopen(fileorurl)
 	         if fileorurl.startswith('http')
 	         else open(fileorurl, 'rb'))
-	        if isinstance(fileorurl, str)
-	        else io.BufferedReader(fileorurl))
-	with file:
-		if file.peek(2).startswith(b'\x1f\x8b'):
-			file = gzip.GzipFile(fileobj=file)
-		if file.peek(4).startswith(b'PK\x03\x04'):
-			table = np.load(io.BytesIO(file.read()))['arr_0']
-		elif file.peek(6).startswith(b'\x93NUMPY'):
-			table = np.load(io.BytesIO(file.read()))
-		else:
-			#head = np.genfromtxt(io.BytesIO(b), max_rows = 2 if has_names else 1, delimiter = delimiter, names = True if has_names else None, dtype = None, encoding = encoding)
-			rd = csv.reader(io.TextIOWrapper(file), delimiter = '\t', lineterminator='\n')
-			it = iter(rd)
-			fieldnames = next(it)
-			first = next(it)
-			dtype = [(name, '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else f'<U{max_string_size}') for name, value in zip(fieldnames, first)]
-			table = np.array([tuple(first)], dtype=dtype)
-			for i, row in enumerate(it, start=1):
-				if i >= len(table):
-					table.resize(2 * len(table))
-				table[i] = tuple(int(v) if dtype[j][1][1] == 'i' else float(v) if dtype[j][1][1] == 'f' else v for j, v in enumerate(row))
-			table.resize(i)
+		file = gzip.open(file, 'rt') if fileorurl.endswith('.gz') else io.TextIOWrapper(file)
+	else:
+		file = gzip.open(fileorurl, 'rt')
+
+	#head = np.genfromtxt(io.BytesIO(b), max_rows = 2 if has_names else 1, delimiter = delimiter, names = True if has_names else None, dtype = None, encoding = encoding)
+	rd = csv.reader(file, delimiter = '\t', lineterminator='\n')
+	it = iter(rd)
+	fieldnames = next(it)
+	first = next(it)
+	dtype = [(name, '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else f'<U{max_string_size}') for name, value in zip(fieldnames, first)]
+	table = np.array([tuple(first)], dtype=dtype)
+	for i, row in enumerate(it, start=1):
+		if i >= len(table):
+			table.resize(2 * len(table))
+		table[i] = tuple(int(v) if dtype[j][1][1] == 'i' else float(v) if dtype[j][1][1] == 'f' else v for j, v in enumerate(row))
+	table.resize(i)
 		
 	leader = table[[n for n in table.dtype.names if 'putin' in n or 'medvedev' in n][0]]
 	turnout = (table['voters_voted_at_station'] + table['voters_voted_early'] + table['voters_voted_outside_station']).astype(np.float32) / table['voters_registered']
