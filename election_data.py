@@ -21,15 +21,11 @@ def toident(s):
 
 def load(fileorurl, max_string_size = 64, encoding = 'utf-8'):
 	if isinstance(fileorurl, str):
-		file = ((urllib.request.urlopen(fileorurl)
-	         if fileorurl.startswith('http')
-	         else open(fileorurl, 'rb'))
-		file = gzip.open(file, 'rt') if fileorurl.endswith('.gz') else io.TextIOWrapper(file)
-	else:
-		file = gzip.open(fileorurl, 'rt')
+		file = urllib.request.urlopen(fileorurl) if fileorurl.startswith('http') else open(fileorurl, 'rb')
+		fileorurl = gzip.open(file, 'rt') if fileorurl.endswith('.gz') else io.TextIOWrapper(file)
 
 	#head = np.genfromtxt(io.BytesIO(b), max_rows = 2 if has_names else 1, delimiter = delimiter, names = True if has_names else None, dtype = None, encoding = encoding)
-	rd = csv.reader(file, delimiter = '\t', lineterminator='\n')
+	rd = csv.reader(fileorurl, delimiter = '\t', lineterminator='\n')
 	it = iter(rd)
 	fieldnames = next(it)
 	first = next(it)
