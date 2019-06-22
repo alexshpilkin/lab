@@ -121,10 +121,7 @@ if __name__ == '__main__':
 	parser.add_argument('-o', '--output', default='square.png', help='Output file')
 	args = parser.parse_args()
 
-	import time;
-	tic = time.time()
 	D = election_data.load(args.data)
-	print(time.time() - tic)
 
 	plt.figure(figsize=(9, 9))
 	plot(D, title=os.path.basename(args.data), binwidth=args.bin_width, weights=args.weights, minsize=args.min_size, noise=args.noise, cmap=args.colormap)
