@@ -113,8 +113,17 @@ if args.json is not None:
 	with open(args.json, 'w', newline='\r\n') as file:
 		json.dump(stations, file, ensure_ascii=False, indent=2, sort_keys=True)
 
-vote_kv = {'ballots_' + election_data.toident(k.lower()): k
-           for s in stations for k in s['vote']}
+vote_kv = {'ballots_' + election_data.toident(k.lower()): k for s in stations for k in s['vote']}
+
+#num_candidates = max(len(s['vote']) for s in stations)
+#for s in stations:
+#	for c, (k, v) in enumerate(s['vote'].items()):
+#		s[f'candidate{c}_name'] = k
+#		s[f'candidate{c}_ballots'] = v
+#	for c in range(len(s['vote'], num_candidates)):
+#		s[f'candidate{c}_name'] = ''
+#		s[f'candidates{c}_ballots'] = 0
+#candidate_fields = [(f'candidate{c}_name', str) for c in range(num_candidates)] + [(f'candidate{c}_ballots', str) for c in range(num_candidates)]
 
 for s in stations:
 	for k, v in glossary['turnouts'].items():
