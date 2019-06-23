@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# python3 ru_election_data.py --protocols-jsonl shpilkin/protocols_227_json.txt --turnouts-jsonl shpilkin/ik_turnouts_json.txt --precincts-jsonl shpilkin/uiks_from_cikrf_json.txt --tsv _RU_2018-03-18_president.tsv.gz
+
+
 import collections
 import argparse
 import json
@@ -98,7 +101,7 @@ for p in protocols:
 
 	station.update(locations.pop((station['region_code'], station['precinct']), {}))
 
-	station['electoral_id'] = election_data.electoral_id(region_code = station['region_code'], date = args.date, election_name = args.election_name, station = station['uik_num'], territory = station['tik_num'])
+	station['electoral_id'] = election_data.electoral_id(region_code = station['region_code'], date = args.date, election_name = args.election_name, station = station['precinct'], territory = station['territory'])
 
 	stations.append(station)
 
@@ -113,17 +116,18 @@ if args.json is not None:
 	with open(args.json, 'w', newline='\r\n') as file:
 		json.dump(stations, file, ensure_ascii=False, indent=2, sort_keys=True)
 
-vote_kv = {'ballots_' + election_data.toident(k.lower()): k for s in stations for k in s['vote']}
+vote_kv = {'ballots_' + k.lower().replace(' ', '_') : k for s in stations for k in s['vote']}
 
-#num_candidates = max(len(s['vote']) for s in stations)
-#for s in stations:
-#	for c, (k, v) in enumerate(s['vote'].items()):
-#		s[f'candidate{c}_name'] = k
-#		s[f'candidate{c}_ballots'] = v
-#	for c in range(len(s['vote'], num_candidates)):
-#		s[f'candidate{c}_name'] = ''
-#		s[f'candidates{c}_ballots'] = 0
-#candidate_fields = [(f'candidate{c}_name', str) for c in range(num_candidates)] + [(f'candidate{c}_ballots', str) for c in range(num_candidates)]
+
+num_candidates = max(len(s['vote']) for s in stations)
+for s in stations:
+	for c, (k, v) in enumerate(s['vote'].items()):
+		s[f'candidate{c}_name'] = k
+		s[f'candidate{c}_ballots'] = v
+	for c in range(len(s['vote']), num_candidates):
+		s[f'candidate{c}_name'] = ''
+		s[f'candidates{c}_ballots'] = 0
+
 
 for s in stations:
 	for k, v in glossary['turnouts'].items():
@@ -131,8 +135,9 @@ for s in stations:
 	for k, v in vote_kv.items():
 		s[k] = (s['vote'] or {}).get(v, 0)
 field_string_type = lambda field: 'U' + str(max(len(s.get(field, '')) for s in stations))
-dtype = [(field, field_string_type(field)) for field in ['region_code', 'region_name', 'election_name', 'territory', 'commission_address', 'station_address', 'electoral_id']] + [('tik_num', int), ('precinct', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
+candidate_fields = [(f'candidate{c}_name', field_string_type(f'candidate{c}_name')) for c in range(num_candidates)] + [(f'candidate{c}_ballots', int) for c in range(num_candidates)]
+dtype = [(field, field_string_type(field)) for field in ['region_code', 'region_name', 'election_name', 'territory', 'commission_address', 'station_address', 'electoral_id']] + [('tik_num', int), ('precinct', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + candidate_fields # [(k, int) for k in sorted(vote_kv)]
 
 if args.tsv is not None:
 	arr = np.array([tuple(s.get(n, "" if isinstance(t, str) else np.nan) for n, t in dtype) for s in stations], dtype=dtype)
-	np.savetxt(args.tsv, arr, comments='', header='\t'.join(arr.dtype.names), fmt='\t'.join({int: '%d', bool: '%d', float: '%.6f', np.float32: '%.4f'}.get(t, '%s') for n, t in dtype), delimiter='\t', newline='\r\n', encoding='utf-8')
+	np.savetxt(args.tsv, arr, comments='', header='\t'.join(arr.dtype.names), fmt='\t'.join({int: '%d', bool: '%d', float: '%.6f', np.float32: '%.4f'}.get(t, '%s') for n, t in dtype), delimiter='\t', encoding='utf-8')

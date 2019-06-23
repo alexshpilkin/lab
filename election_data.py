@@ -2,11 +2,18 @@ import re
 import csv
 import gzip
 import io
+import functools
 import unicodedata
 import urllib.request
 import numpy as np
 
-def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False):
+RU_LEADER = ['Путин', 'Медведев']
+RU_TRANSLIT =  ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+				'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
+				'ABVGDEËŽZIJKLMNOPRSTUFHCČŠŜ"Y\'ÈÛÂ'
+				'abvgdeëžzijklmnoprstufhcčšŝ"y\'èûâ')
+
+def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False, leader = RU_LEADER):
 	if isinstance(fileorurl, str):
 		file = urllib.request.urlopen(fileorurl) if fileorurl.startswith('http') else open(fileorurl, 'rb')
 		fileorurl = gzip.open(file, 'rt') if fileorurl.endswith('.gz') else io.TextIOWrapper(file)
@@ -23,26 +30,39 @@ def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False):
 			table.resize(2 * len(table))
 		table[i] = tuple(int(v) if dtype[j][1][1] == 'i' else float(v) if dtype[j][1][1] == 'f' else v for j, v in enumerate(row))
 	table.resize(i)
-		
-	leader = table[[n for n in table.dtype.names if 'putin' in n or 'medvedev' in n][0]]
-	turnout = (table['voters_voted_at_station'] + table['voters_voted_early'] + table['voters_voted_outside_station']).astype(np.float32) / table['voters_registered']
-	extra = dict(ballots_valid_invalid = table['ballots_valid'] + table['ballots_invalid'], leader = leader, turnout = turnout)
+
+	extra = dict(
+		ballots_valid_invalid = table['ballots_valid'] + table['ballots_invalid'], 
+		turnout = (table['voters_voted_at_station'] + table['voters_voted_early'] + table['voters_voted_outside_station']).astype(np.float32) / table['voters_registered'],
+		candidate_name_hash = functools.reduce(np.add, [np.fromiter(map(hash, table[name]), dtype = np.int64, count = len(table)) for name in table.dtype.names if name.startswith('candidate') and name.endswith('_name')])
+	)
+
+	def shrink(x):
+		return x
+		max_len = max(map(len, x))
+		return (x.copy().view('U1').reshape(len(x), -1)[:, :max_len].copy().view(('U', max_len)) if max_len > 0 and max_len < x.shape[-1] else x).squeeze()
 
 	names = table.dtype.names + tuple(extra.keys())
-	return np.rec.fromarrays([table[n] if n in table.dtype.names else extra[n] for n in names], names=names)
+	columns = [(shrink(table[n]) if table[n].dtype.char == 'U' else table[n]) if n in table.dtype.names else extra[n] for n in names]
+	D = np.rec.fromarrays(arrs, names=names)
+	D = promote_candidates_to_columns(D, leader = leader)
+	return D
 
-	#TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
-	#			'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
-	#			'ABVGDEËŽZIJKLMNOPRSTUFHCČŠŜ"Y\'ÈÛÂ'
-	#			'abvgdeëžzijklmnoprstufhcčšŝ"y\'èûâ') # ISO 9:1995
-	#TRANSLIT = {ord(a): ord(b) for a, b in zip(*TRANSLIT)}
+def latinize(s, safe = False, T = {ord(a): ord(b) for a, b in zip(*RU_TRANSLIT)}, S = dict([(' ', '_')] + [(ord(c), None) for c in ''',."'()'''])):
+	#s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
+	return s.translate(T) if not safe else s.translate(T).translate(S).lower()
 
-	#def translit(s):
-	#	return s.translate(TRANSLIT)
-
-	#def toident(s):
-	#	s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
-	#	return s.lower().replace(' ', '_').translate({ord(c) : None for c in ''',."'()'''})
+def promote_candidates_to_columns(D, leader = []):
+	if len(np.unique(D.candidate_name_hash)) == 1:
+		column_names = list(zip([k for k, n in enumerate(D.dtype.names) if n.startswith('candidate') and n.endswith('_name')], [k for k, n in enumerate(D.dtype.names) if n.startswith('candidate') and n.endswith('_ballots')]))
+		ballots = [{D[i][k1] : D[i][k2] for k1, k2 in column_names} for i in range(len(D))]
+		columns = {name : np.fromiter((b[name] for b in ballots), dtype = np.int32, count = len(D)) for name in ballots[0].keys()}
+		columns_leader = [c for n, c in columns.items() if any(l.lower() in n.lower() for l in leader)]
+		if columns_leader:
+			columns['leader'] = columns_leader[0]
+		names = [name for name in D.dtype.names if not name.startswith('candidate')] + list(sorted(columns.keys()))
+		D = np.rec.fromarrays([columns[n] if n in columns else D[n] for n in names], names=names)
+	return D
 
 def filter(D, region_code=None, region_name=None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
 	idx = np.full(len(D), True)
