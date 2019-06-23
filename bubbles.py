@@ -40,8 +40,7 @@ def plot(D, title, unit=1000):
 	ax2.set_xlim(ax1.get_xlim())
 	ax2.set_xlabel('Territory')
 	ax2.set_xticks(tsum[:-1])
-	ax2.set_xticklabels(map(election_data.translit, terr),
-	                    ha='left', rotation=60)
+	ax2.set_xticklabels(terr, ha='left', rotation=60)
 	ax2.tick_params(axis='x', rotation=60,
 	                bottom=False, top=True,
 	                labelbottom=False, labeltop=True)

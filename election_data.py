@@ -6,20 +6,7 @@ import unicodedata
 import urllib.request
 import numpy as np
 
-TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
-            'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
-            'ABVGDEËŽZIJKLMNOPRSTUFHCČŠŜ"Y\'ÈÛÂ'
-            'abvgdeëžzijklmnoprstufhcčšŝ"y\'èûâ') # ISO 9:1995
-TRANSLIT = {ord(a): ord(b) for a, b in zip(*TRANSLIT)}
-
-def translit(s):
-	return s.translate(TRANSLIT)
-
-def toident(s):
-	s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
-	return s.lower().replace(' ', '_').translate({ord(c) : None for c in ''',."'()'''})
-
-def load(fileorurl, max_string_size = 64, encoding = 'utf-8'):
+def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False):
 	if isinstance(fileorurl, str):
 		file = urllib.request.urlopen(fileorurl) if fileorurl.startswith('http') else open(fileorurl, 'rb')
 		fileorurl = gzip.open(file, 'rt') if fileorurl.endswith('.gz') else io.TextIOWrapper(file)
@@ -43,6 +30,19 @@ def load(fileorurl, max_string_size = 64, encoding = 'utf-8'):
 
 	names = table.dtype.names + tuple(extra.keys())
 	return np.rec.fromarrays([table[n] if n in table.dtype.names else extra[n] for n in names], names=names)
+
+	#TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+	#			'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
+	#			'ABVGDEËŽZIJKLMNOPRSTUFHCČŠŜ"Y\'ÈÛÂ'
+	#			'abvgdeëžzijklmnoprstufhcčšŝ"y\'èûâ') # ISO 9:1995
+	#TRANSLIT = {ord(a): ord(b) for a, b in zip(*TRANSLIT)}
+
+	#def translit(s):
+	#	return s.translate(TRANSLIT)
+
+	#def toident(s):
+	#	s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
+	#	return s.lower().replace(' ', '_').translate({ord(c) : None for c in ''',."'()'''})
 
 def filter(D, region_code=None, region_name=None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
 	idx = np.full(len(D), True)
