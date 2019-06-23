@@ -10,7 +10,7 @@ import numpy as np
 import election_data
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--glossary', default = 'ruelectiondata.json')
+parser.add_argument('--glossary', default = 'ru_election_data.json')
 parser.add_argument('--protocols-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/protocols_227_json.txt')
 parser.add_argument('--turnouts-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/ik_turnouts_json.txt')
 parser.add_argument('--precincts-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/uiks_from_cikrf_json.txt')
@@ -84,9 +84,9 @@ for p in protocols:
 
 	station['election_name'] = election_name
 	station['region_name'] = glossary['regions'].get(station['region_code'], [region_name])[0]
-	station['uik_num'] = int(uik_name)
+	station['precinct'] = int(uik_name)
 	station['tik_num']  = int(tik_num)
-	station['tik_name'] = tik_name.replace('Территориальная избирательная комиссия', 'ТИК').replace('города', 'г.').replace('района', 'р-на')
+	station['territory'] = tik_name.replace('Территориальная избирательная комиссия', 'ТИК').replace('города', 'г.').replace('района', 'р-на')
 	station['vote'] = {k_ : int(v) for k, v in lines.items() for k_ in [letters(k)] if k_.istitle()}
 	station['voters_voted_early'] = station.get('voters_voted_early', 0)
 	station['voters_voted_outside_station'] = station.get('voters_voted_outside_station', 0)
@@ -96,7 +96,7 @@ for p in protocols:
 	p['loc'][-1] = uik_name + ' ' + p['loc'][-1]
 	station['turnouts'] = {k.replace('.', ':') : v for k, v in ik_turnouts.get(''.join(p['loc']), dict(turnouts = {}))['turnouts'].items()} or None
 
-	station.update(locations.pop((station['region_code'], station['uik_num']), {}))
+	station.update(locations.pop((station['region_code'], station['precinct']), {}))
 
 	station['electoral_id'] = election_data.electoral_id(region_code = station['region_code'], date = args.date, election_name = args.election_name, station = station['uik_num'], territory = station['tik_num'])
 
@@ -131,7 +131,7 @@ for s in stations:
 	for k, v in vote_kv.items():
 		s[k] = (s['vote'] or {}).get(v, 0)
 field_string_type = lambda field: 'U' + str(max(len(s.get(field, '')) for s in stations))
-dtype = [(field, field_string_type(field)) for field in ['region_code', 'region_name', 'election_name', 'tik_name', 'commission_address', 'station_address', 'electoral_id']] + [('tik_num', int), ('uik_num', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
+dtype = [(field, field_string_type(field)) for field in ['region_code', 'region_name', 'election_name', 'territory', 'commission_address', 'station_address', 'electoral_id']] + [('tik_num', int), ('precinct', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + [(k, int) for k in sorted(vote_kv)]
 
 if args.tsv is not None:
 	arr = np.array([tuple(s.get(n, "" if isinstance(t, str) else np.nan) for n, t in dtype) for s in stations], dtype=dtype)
