@@ -17,6 +17,24 @@ code: https://definitely-staging.iodide.io/notebooks/37/
 
 **electoral_id** - ascii строка
 
+**voters_registered** - int
+
+**voters_voted** - int
+
+**voters_voted_at_station** - int
+
+**voters_voted_outside_station** - int 
+
+**voters_voted_early** - int
+
+**ballots_valid** - int
+
+**ballots_invalid** - int
+
+**territory** - unicode строка
+
+**election_name** - unicode строка
+
 # links
 
 https://github.com/zeroepoch/plotbitrate/blob/master/plotbitrate.py
