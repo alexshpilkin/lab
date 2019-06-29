@@ -18,8 +18,6 @@ code: https://definitely-staging.iodide.io/notebooks/37/
 **electoral_id** - ascii строка
 
 # links
-https://github.com/smacke/subsync
-https://github.com/facebookresearch/tdfbanks
 
 https://github.com/zeroepoch/plotbitrate/blob/master/plotbitrate.py
 https://github.com/avsmal/cikrf_crawler/blob/master/cikrf/spiders/UIKSpider.py
