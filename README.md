@@ -17,7 +17,7 @@ code: https://definitely-staging.iodide.io/notebooks/37/
 
 **electoral_id** - ascii строка
 
-**voters_registered** - int
+**voters_registered** - int, количество избирателей в списке. Точнее: "число избирателей, внесенных в список избирателей на момент окончания голосования"
 
 **voters_voted** - int
 
