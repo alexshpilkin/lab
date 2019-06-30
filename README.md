@@ -1,7 +1,5 @@
 # Iodide notebook demo
-report mode: https://definitely-staging.iodide.io/notebooks/37/?viewMode=report
-
-code: https://definitely-staging.iodide.io/notebooks/37/
+[Report](https://alpha.iodide.io/notebooks/2121/?viewMode=report) [Code](https://alpha.iodide.io/notebooks/2121/) 
 
 # todo
 - поддержка вместо результата
