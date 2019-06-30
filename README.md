@@ -42,18 +42,13 @@ https://github.com/avsmal/cikrf_crawler/blob/master/cikrf/spiders/UIKSpider.py
 https://github.com/dkobak/elections (https://vk.com/avsmal?w=wall2541_14424%2Fall, https://avsmal.livejournal.com/24683.html)
 https://arxiv.org/abs/1204.0307
 
-
-https://habr.com/ru/post/352424/
-
-https://cikinfo.modos189.ru
-
-https://habr.com/en/post/354020/
+https://cikinfo.modos189.ru https://habr.com/ru/post/352424/
 
 https://corbulon.livejournal.com/175917.html https://corbulon.livejournal.com/177010.html
 
 https://lleo.me/dnevnik/2017/09/11_1.html
 
-https://habr.com/ru/post/358790/  https://2018.krutika.ru/digits?r=bashkortostan,dagestan,karachaev-cherkess,tatarstan,krasnodar,stavropol,kemerovo,saratov
+https://habr.com/en/post/354020/ https://habr.com/ru/post/358790/  https://2018.krutika.ru/digits?r=bashkortostan,dagestan,karachaev-cherkess,tatarstan,krasnodar,stavropol,kemerovo,saratov
 
 #### Карты
 - https://elections.dekoder.org/ukraine/ua
