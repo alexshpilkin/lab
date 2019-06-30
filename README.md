@@ -1,5 +1,5 @@
 # Iodide notebook demo
-[Report](https://alpha.iodide.io/notebooks/2121/?viewMode=report) [Code](https://alpha.iodide.io/notebooks/2121/) 
+[Report](https://alpha.iodide.io/notebooks/2121/?viewMode=report) | [Code](https://alpha.iodide.io/notebooks/2121/) 
 
 # todo
 - поддержка вместо результата
