@@ -33,8 +33,7 @@ if __name__ == '__main__':
 	parser.add_argument('-o', '--output', default='historytraj', help='Output directory')
 	args = parser.parse_args()
 	
-	if not os.path.exists(args.output):
-		os.mkdir(args.output)
+	os.makedirs(args.output, exist_ok = True)
 
 	D = election_data.load(args.data)
 	R = election_data.regions(D)
