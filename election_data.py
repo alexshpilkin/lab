@@ -38,7 +38,7 @@ def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False, lea
 	extra.update({name.replace('_name', '_hash') : np.fromiter(map(hash, T[name]), dtype = np.int64, count = len(T)) for name in T.dtype.names if name.startswith('candidate') and name.endswith('_name')})
 
 	D = numpy.lib.recfunctions.append_fields(T.view(np.recarray), list(extra.keys()), [extra[k] for k in extra.keys()], asrecarray = True)
-	D = promote_candidates_to_columns(D, leader = leader)
+	D = promote_candidates_to_columns(D, leader = leader, latin = latin)
 
 	#def shrink(x):
 	##	max_len = max(map(len, x))
@@ -50,8 +50,9 @@ def latinize(s, safe = False, T = {ord(a): ord(b) for a, b in zip(*RU_TRANSLIT)}
 	#s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
 	return s.translate(T) if not safe else s.translate(T).translate(S).lower()
 
-def promote_candidates_to_columns(D, leader = []):
-	name_map = {name.replace('_hash', '_ballots') : 'candidate_' + D[name.replace('_hash', '_name')][0] for name in D.dtype.names if name.endswith('_hash') and len(np.unique(D[name])) == 1}
+def promote_candidates_to_columns(D, leader = [], latin = False):
+	latinize_ = lambda s, **kwargs: s if latin else latinize(s, safe = True)
+	name_map = {name.replace('_hash', '_ballots') : 'candidate_' + latinize_(D[name.replace('_hash', '_name')][0].replace(' ', '_')) for name in D.dtype.names if name.endswith('_hash') and len(np.unique(D[name])) == 1}
 	D = np.lib.recfunctions.rename_fields(D, name_map)
 	D = np.lib.recfunctions.append_fields(D, ['leader'], [D[n] for n in D.dtype.names if any(l.lower() in n.lower() for l in leader)], asrecarray = True)
 	return D
