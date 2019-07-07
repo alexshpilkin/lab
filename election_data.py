@@ -8,10 +8,8 @@ import numpy as np
 import numpy.lib.recfunctions # http://pyopengl.sourceforge.net/pydoc/numpy.lib.recfunctions.html
 
 RU_LEADER = ['Путин', 'Медведев']
-RU_TRANSLIT =  ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
-				'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
-				'ABVGDEËŽZIJKLMNOPRSTUFHCČŠŜ"Y\'ÈÛÂ'
-				'abvgdeëžzijklmnoprstufhcčšŝ"y\'èûâ')
+RU_TRANSLIT =  ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя',
+				'ABVGDEEZZIJKLMNOPRSTUFHCCSSYYYEUAabvgdeezzijklmnoprstufhccssyyyeua')
 
 def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False, leader = RU_LEADER):
 	if isinstance(fileorurl, str):
@@ -24,37 +22,32 @@ def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False, lea
 	fieldnames = next(it)
 	first = next(it)
 	dtype = [(name, '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else f'<U{max_string_size}') for name, value in zip(fieldnames, first)]
-	T = np.array([tuple(first)], dtype=dtype)
-	for i, row in enumerate(it, start=1):
+	col2idx = {n : i for i, (n, t) in enumerate(dtype)}
+	dtype += [(n, t) for n, t in [('ballots_valid_invalid', '<i4'), ('turnout', '<f4')] if n not in fieldnames]
+	T = np.empty((2048,), dtype=dtype)
+	def append(row, i):
 		if i >= len(T):
 			T.resize(2 * len(T))
-		T[i] = tuple(int(v) if dtype[j][1][1] == 'i' else float(v) if dtype[j][1][1] == 'f' else v for j, v in enumerate(row))
+		t = tuple(int(v) if dtype[j][1][1] == 'i' else float(v) if dtype[j][1][1] == 'f' else v for j, v in enumerate(row))
+		ballots_valid_invalid = t[col2idx['ballots_valid']] + t[col2idx['ballots_invalid']]
+		turnout = (t[col2idx['voters_voted_at_station']] + t[col2idx['voters_voted_early']] + t[col2idx['voters_voted_outside_station']]) / t[col2idx['voters_registered']]
+		T[i] = (t + (ballots_valid_invalid, turnout))[:len(dtype)] 
+
+	append(first, 0)
+	for i, row in enumerate(it, start=1):
+		append(row, i)
 	T.resize(i)
-
-	extra = dict(
-		ballots_valid_invalid = T['ballots_valid'] + T['ballots_invalid'], 
-		turnout = (T['voters_voted_at_station'] + T['voters_voted_early'] + T['voters_voted_outside_station']).astype(np.float32) / T['voters_registered'],
-	)
-	extra.update({name.replace('_name', '_hash') : np.fromiter(map(hash, T[name]), dtype = np.int64, count = len(T)) for name in T.dtype.names if name.startswith('candidate') and name.endswith('_name')})
-
-	D = numpy.lib.recfunctions.append_fields(T.view(np.recarray), list(extra.keys()), [extra[k] for k in extra.keys()], asrecarray = True)
-	D = promote_candidates_to_columns(D, leader = leader, latin = latin)
-
-	#def shrink(x):
-	##	max_len = max(map(len, x))
-	##	return (x.copy().view('U1').reshape(len(x), -1)[:, :max_len].copy().view(('U', max_len)) if max_len > 0 and max_len < x.shape[-1] else x).squeeze()
-
-	return D
+	return promote_candidates_to_columns(T.view(np.recarray), leader = leader, latin = latin)
 
 def latinize(s, safe = False, T = {ord(a): ord(b) for a, b in zip(*RU_TRANSLIT)}, S = dict([(' ', '_')] + [(ord(c), None) for c in ''',."'()'''])):
 	#s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
 	return s.translate(T) if not safe else s.translate(T).translate(S).lower()
 
 def promote_candidates_to_columns(D, leader = [], latin = False):
-	latinize_ = lambda s, **kwargs: s if latin else latinize(s, safe = True)
-	name_map = {name.replace('_hash', '_ballots') : 'candidate_' + latinize_(D[name.replace('_hash', '_name')][0].replace(' ', '_')) for name in D.dtype.names if name.endswith('_hash') and len(np.unique(D[name])) == 1}
+	latinize_ = lambda s, **kwargs: (s if latin else latinize(s, safe = True)).replace(' ', '_')
+	name_map = {name : 'candidate_' + latinize_(D[name][0]) for name in D.dtype.names if name.endswith('_name') and len(np.unique(D[name])) == 1}
 	D = np.lib.recfunctions.rename_fields(D, name_map)
-	D = np.lib.recfunctions.append_fields(D, ['leader'], [D[n] for n in D.dtype.names if any(l.lower() in n.lower() for l in leader)], asrecarray = True)
+	D = np.lib.recfunctions.append_fields(D, ['leader'], [D[n] for n in D.dtype.names if any(latinize_(l.lower()) in n.lower() for l in leader)], asrecarray = True)
 	return D
 
 def filter(D, region_code=None, region_name=None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
