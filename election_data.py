@@ -47,7 +47,7 @@ def promote_candidates_to_columns(D, leader = [], latin = False):
 	latinize_ = lambda s, **kwargs: (s if latin else latinize(s, safe = True)).replace(' ', '_')
 	name_map = {name : 'candidate_' + latinize_(D[name][0]) for name in D.dtype.names if name.endswith('_name') and len(np.unique(D[name])) == 1}
 	D = np.lib.recfunctions.rename_fields(D, name_map)
-	D = np.lib.recfunctions.append_fields(D, ['leader'], [D[n] for n in D.dtype.names if any(latinize_(l.lower()) in n.lower() for l in leader)], asrecarray = True)
+	D = np.lib.recfunctions.append_fields(D, ['leader'], [D[n.replace('_name', '_ballots')] for n in D.dtype.names if any(latinize_(l.lower()) in latinize_(D[n][0].lower()) for l in leader)], asrecarray = True)
 	return D
 
 def filter(D, region_code=None, region_name=None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
@@ -76,18 +76,21 @@ def filter(D, region_code=None, region_name=None, voters_registered_min=None, vo
 def regions(D):
 	return dict(np.unique(D[['region_code', 'region_name']], axis = 0).tolist())
 
+
 def electoral_id(electoral_id = None, *, region_code = None, date = None, election_name = None, territory = None, station = None, **extra):
-	fields = dict(
-		region_code = r'[A-Z]{2}(-[A-Z]{3})?',
-		date = r'\d{4}-\d{2}-\d{2}',
-		election_name = r'[a-z]+',
-		extra = r'([A-Z]+)[=]?([a-z0-9+]+)'
-	)
-	alias = dict(territory = ['T'], station = ['V'])
-	val = lambda val, int_or_str = (lambda x: int(x) if x.isdigit() else x): list(map(int_or_str, val.split('+'))) if '+' in val else int_or_str(val)
-	spacize = lambda o: str(o).replace(' ', '-')
-	plusize = lambda k, val: alias.get(k, [k])[0] + '+'.join(map(spacize, val if isinstance(val, list) else [spacize(val)]))
-	if electoral_id:
-		return dict((k, f) if k != 'extra' else (([k for k, a in alias.items() if m.group(1) in a] + [k])[0], val(m.group(2))) for f in electoral_id.split('_') for k, r in fields.items() for m in [re.fullmatch(r, f)] if m is not None)
-	else:
-		return '_'.join(str(f) for f in [region_code, plusize('territory', territory) if territory else None, plusize('station', station) if station else None, date, election_name] + [plusize(k, v) if v else None for k, v in extra.items()] if f is not None)
+    import re
+    fields = dict(
+        region_code = r'[A-Z]{2}(-[A-Z0-9]{2-3})?',
+        date = r'\d{4}-\d{2}-\d{2}',
+        election_name = r'[a-z]+',
+        extra = r'([A-Z]+)[=]?([a-z0-9+]+)'
+    )
+    alias = dict(territory = ['T'], station = ['V'])
+    val = lambda val, int_or_str = (lambda x: int(x) if x.isdigit() else x): list(map(int_or_str, val.split('+'))) if '+' in val else int_or_str(val)
+    spacize = lambda o: str(o).replace(' ', '-')
+    plusize = lambda k, val: alias.get(k, [k])[0] + '+'.join(map(spacize, val if isinstance(val, list) else [spacize(val)]))
+    if electoral_id:
+        return dict((k, f) if k != 'extra' else (([k for k, a in alias.items() if m.group(1) in a] + [k])[0], val(m.group(2))) for f in electoral_id.split('_') for k, r in fields.items() for m in [re.fullmatch(r, f)] if m is not None)
+    else:
+        return '_'.join(str(f) for f in [region_code, plusize('territory', territory) if territory else None, plusize('station', station) if station else None, date, election_name] + [plusize(k, v) if v else None for k, v in extra.items()] if f is not None)
+
