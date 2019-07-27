@@ -93,4 +93,3 @@ def electoral_id(electoral_id = None, *, region_code = None, date = None, electi
         return dict((k, f) if k != 'extra' else (([k for k, a in alias.items() if m.group(1) in a] + [k])[0], val(m.group(2))) for f in electoral_id.split('_') for k, r in fields.items() for m in [re.fullmatch(r, f)] if m is not None)
     else:
         return '_'.join(str(f) for f in [region_code, plusize('territory', territory) if territory else None, plusize('station', station) if station else None, date, election_name] + [plusize(k, v) if v else None for k, v in extra.items()] if f is not None)
-
