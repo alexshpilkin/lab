@@ -80,7 +80,7 @@ def regions(D):
 def electoral_id(electoral_id = None, *, region_code = None, date = None, election_name = None, territory = None, station = None, **extra):
     import re
     fields = dict(
-        region_code = r'[A-Z]{2}(-[A-Z0-9]{2-3})?',
+        region_code = r'[A-Z]{2}(-[A-Z0-9]{2,3})?',
         date = r'\d{4}-\d{2}-\d{2}',
         election_name = r'[a-z]+',
         extra = r'([A-Z]+)[=]?([a-z0-9+]+)'
