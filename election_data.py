@@ -7,9 +7,9 @@ import urllib.request
 import numpy as np
 import numpy.lib.recfunctions # http://pyopengl.sourceforge.net/pydoc/numpy.lib.recfunctions.html
 
-RU_LEADER = ['Путин', 'Медведев']
-RU_TRANSLIT =  ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя',
-				'ABVGDEEZZIJKLMNOPRSTUFHCCSSYYYEUAabvgdeezzijklmnoprstufhccssyyyeua')
+RU_LEADER = ['Путин', 'Медведев', 'Слуга народу']
+RU_TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя',
+               'ABVGDEEZZIJKLMNOPRSTUFHCCSSYYYEUAabvgdeezzijklmnoprstufhccssyyyeua')
 
 def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False, leader = RU_LEADER):
 	if isinstance(fileorurl, str):
