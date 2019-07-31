@@ -17,7 +17,6 @@ parser.add_argument('--glossary', default = 'ru_election_data.json')
 parser.add_argument('--protocols-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/protocols_227_json.txt')
 parser.add_argument('--turnouts-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/ik_turnouts_json.txt')
 parser.add_argument('--precincts-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/uiks_from_cikrf_json.txt')
-parser.add_argument('--json')
 parser.add_argument('--tsv')
 parser.add_argument('--bad-json')
 parser.add_argument('--date', default = '2018-03-18')
@@ -111,10 +110,6 @@ for k in locations.keys():
 if args.bad_json is not None:
 	with open(args.bad_json, 'w', newline='\r\n') as file:
 		json.dump({k : list(sorted(v)) for k, v in bad.items()}, file, ensure_ascii=False, indent=2, sort_keys=True)
-
-if args.json is not None:
-	with open(args.json, 'w', newline='\r\n') as file:
-		json.dump(stations, file, ensure_ascii=False, indent=2, sort_keys=True)
 
 vote_kv = {'ballots_' + k.lower().replace(' ', '_') : k for s in stations for k in s['vote']}
 
