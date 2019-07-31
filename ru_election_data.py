@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# python3 ru_election_data.py --protocols-jsonl shpilkin/protocols_227_json.txt --turnouts-jsonl shpilkin/ik_turnouts_json.txt --precincts-jsonl shpilkin/uiks_from_cikrf_json.txt --tsv _RU_2018-03-18_president.tsv.gz
+# python3 ru_election_data.py --protocols shpilkin/protocols_227_json.txt --turnouts shpilkin/ik_turnouts_json.txt --precincts shpilkin/uiks_from_cikrf_json.txt --tsv _RU_2018-03-18_president.tsv.gz
 
 
 import collections
@@ -14,9 +14,9 @@ import election_data
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--glossary', default = 'ru_election_data.json')
-parser.add_argument('--protocols-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/protocols_227_json.txt')
-parser.add_argument('--turnouts-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/ik_turnouts_json.txt')
-parser.add_argument('--precincts-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/uiks_from_cikrf_json.txt')
+parser.add_argument('--protocols', default = 'https://github.com/schitaytesami/data/releases/download/20180318/protocols_227_json.txt')
+parser.add_argument('--turnouts', default = 'https://github.com/schitaytesami/data/releases/download/20180318/ik_turnouts_json.txt')
+parser.add_argument('--precincts', default = 'https://github.com/schitaytesami/data/releases/download/20180318/uiks_from_cikrf_json.txt')
 parser.add_argument('--tsv')
 parser.add_argument('--bad-json')
 parser.add_argument('--date', default = '2018-03-18')
@@ -25,9 +25,9 @@ args = parser.parse_args()
 
 read_all_lines = lambda file_path: filter(bool, (urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8').split('\n'))
 glossary = json.load(open(args.glossary))
-protocols = map(json.loads, read_all_lines(args.protocols_jsonl))
-ik_turnouts = {''.join(s['loc']) : s for s in map(json.loads, read_all_lines(args.turnouts_jsonl))}
-uiks_from_cikrf = map(json.loads, read_all_lines(args.precincts_jsonl))
+protocols = map(json.loads, read_all_lines(args.protocols))
+ik_turnouts = {''.join(s['loc']) : s for s in map(json.loads, read_all_lines(args.turnouts))}
+uiks_from_cikrf = map(json.loads, read_all_lines(args.precincts))
 
 bad = collections.defaultdict(set)
 
