@@ -10,11 +10,11 @@ import election_data
 # * Significance-2016: binwidth=0.25, addNoise=True,	weights='ones',	 minsize = 0
 # * Significance-2018: binwidth=0.1,	addNoise=True,	weights='ones',	 minsize = 0
 
-def histogram(D, *, binwidth = 0.25, weights='voters', minsize=0, noise=False, seed=1):
+def histogram(D, *, binwidth=0.25, weights='voters', minsize=0, noise=False, seed=1):
 	rnd = np.random.RandomState(seed)
 	edges = np.arange(-binwidth/2, 100 + binwidth/2, binwidth)
 	centers = np.arange(0, 100, binwidth)
-	
+
 	D = election_data.filter(D, ballots_valid_invalid_min=1, voters_registered_min=minsize, voters_voted_le_voters_registered=True, foreign=False)
 
 	wval, wlbl = {
@@ -111,7 +111,7 @@ if __name__ == '__main__':
 	matplotlib.use('Agg')
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument('data', nargs='?', metavar='DATA', default='https://github.com/schitaytesami/lab/releases/download/data-v2/2018.tsv.gz', help='Data file to use, in TSV, NPY or NPZ format')
+	parser.add_argument('data', nargs='?', metavar='DATA', default='https://github.com/schitaytesami/lab/releases/download/data-v2/2018.tsv.gz', help='Data file to use')
 	parser.add_argument('--bin-width', default=0.25, type=float, help='Bin width in percentage points')
 	parser.add_argument('--weights', default='voters', choices={'voters', 'given', 'leader', 'ones'}, help="'ones' (counts polling stations), 'voters' (counts registered voters), 'given' (counts ballots given), or 'leader' (counts ballots for the leader)")
 	parser.add_argument('--min-size', default=0, type=int, help='Minimum precinct size to include')
