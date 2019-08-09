@@ -5,6 +5,7 @@
 
 import collections
 import argparse
+import io
 import json
 import urllib.parse
 import urllib.request
@@ -23,15 +24,24 @@ parser.add_argument('--date', default = '2018-03-18')
 parser.add_argument('--election-name', default = 'president')
 args = parser.parse_args()
 
-read_all_lines = lambda file_path: filter(bool, (urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8').split('\n'))
+def argopen(url):
+	return urllib.request.urlopen(url) if '//' in url else open(url, 'rb')
+
+def jsons(file):
+	# TODO gzip, json-seq support?
+	file = io.TextIOWrapper(file, encoding='utf-8')
+	return (json.loads(line) for line in file if line)
+
+def coord(s):
+	return float(s.replace(' ', '')) if s else np.nan
+
 glossary = json.load(open(args.glossary))
-protocols = map(json.loads, read_all_lines(args.protocols))
-ik_turnouts = {''.join(s['loc']) : s for s in map(json.loads, read_all_lines(args.turnouts))}
-uiks_from_cikrf = map(json.loads, read_all_lines(args.precincts))
+protocols = jsons(argopen(args.protocols))
+ik_turnouts = {''.join(s['loc']) : s for s in jsons(argopen(args.turnouts))}
+uiks_from_cikrf = jsons(argopen(args.precincts))
 
 bad = collections.defaultdict(set)
 
-coord = lambda s: float(s.replace(' ', '')) if s else np.nan
 locations = {}
 for u in uiks_from_cikrf:
 	region = ([k for k, v in glossary['regions'].items() for vv in v if vv in u['region']] + [None])[0]
