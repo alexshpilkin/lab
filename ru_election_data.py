@@ -55,15 +55,15 @@ letters = lambda s: ''.join(c for c in s if c.isalpha() or c.isspace())
 
 stations = []
 for p in protocols:
-	election_name, tik_name, uik_name = (p['loc'] + ['', '', ''])[:3]
+	if len(p['loc']) != 3:
+		continue
+	region_name, tik_name, uik_name = p['loc']
 	uik_name = ''.join(c for c in uik_name if c.isdigit())
-	tik_splitted = tik_name.split()
-	tik_num, tik_name = tik_splitted[0], ' '.join(tik_splitted[1:])
-	region_num = int(urllib.parse.parse_qs(p['url'])['region'][0])
-	region_name = election_name
-
+	tik_num, *tik_name = tik_name.split()
+	tik_name = ' '.join(tik_name)
 	if not uik_name:
 		continue
+	region_num = int(urllib.parse.parse_qs(p['url'])['region'][0])
 
 	lines = p['data']
 	if isinstance(lines, list):
@@ -80,7 +80,6 @@ for p in protocols:
 	if station['region_code'] is None:
 		bad['regions'].add(region_name)
 
-	station['election_name'] = election_name
 	station['region_name'] = glossary['regions'].get(station['region_code'], [region_name])[0]
 	station['precinct'] = int(uik_name)
 	station['tik_num']  = int(tik_num)
@@ -127,7 +126,7 @@ for s in stations:
 		s[k] = (s['vote'] or {}).get(v, 0)
 field_string_type = lambda field: 'U' + str(max(len(s.get(field, '')) for s in stations))
 candidate_fields = [(f'candidate{c}_name', field_string_type(f'candidate{c}_name')) for c in range(num_candidates)] + [(f'candidate{c}_ballots', int) for c in range(num_candidates)]
-dtype = [(field, field_string_type(field)) for field in ['region_code', 'region_name', 'election_name', 'territory', 'commission_address', 'station_address', 'electoral_id']] + [('tik_num', int), ('precinct', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + candidate_fields # [(k, int) for k in sorted(vote_kv)]
+dtype = [(field, field_string_type(field)) for field in ['region_code', 'region_name', 'territory', 'commission_address', 'station_address', 'electoral_id']] + [('tik_num', int), ('precinct', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + candidate_fields # [(k, int) for k in sorted(vote_kv)]
 
 if args.tsv is not None:
 	arr = np.array([tuple(s.get(n, "" if isinstance(t, str) else np.nan) for n, t in dtype) for s in stations], dtype=dtype)
