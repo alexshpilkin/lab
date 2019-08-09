@@ -47,10 +47,6 @@ for u in uiks_from_cikrf:
 	precinct['station_address'] = u['voteaddress'].strip().replace('\t', ' ')
 	precinct['station_lat'] = coord(u['votecoords']['lat'])
 	precinct['station_lon'] = coord(u['votecoords']['lon'])
-	precinct['members'] = [{'name': m['ФИО'],
-	                        'position': {'Председатель': 'chairman', 'Зам.председателя': 'vice-chairman', 'Секретарь': 'secretary', 'Член': 'member'}[m['Статус']],
-	                        'delegated_by': m['Кем предложен в состав комиссии']}
-	                       for m in u['members']]
 
 	locations[(region, number)] = precinct
 
