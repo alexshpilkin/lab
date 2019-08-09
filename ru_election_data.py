@@ -37,10 +37,15 @@ def coord(s):
 
 glossary = json.load(open(args.glossary))
 protocols = jsons(argopen(args.protocols))
-ik_turnouts = {''.join(s['loc']) : s for s in jsons(argopen(args.turnouts))}
 uiks_from_cikrf = jsons(argopen(args.precincts))
 
 bad = collections.defaultdict(set)
+
+ik_turnouts = {}
+for obj in jsons(argopen(args.turnouts)):
+	key = obj['loc'][:-1] + [obj['ik_name']]
+	val = {t.replace('.', ':'): v for t, v in obj['turnouts'].items()}
+	ik_turnouts[tuple(key)] = val
 
 locations = {}
 for u in uiks_from_cikrf:
@@ -58,7 +63,7 @@ for u in uiks_from_cikrf:
 	precinct['station_lat'] = coord(u['votecoords']['lat'])
 	precinct['station_lon'] = coord(u['votecoords']['lon'])
 
-	locations[(region, number)] = precinct
+	locations[region, number] = precinct
 
 sum_or_none = lambda xs: None if all(x is None for x in xs) else sum(x for x in xs if x is not None)
 letters = lambda s: ''.join(c for c in s if c.isalpha() or c.isspace())
@@ -99,9 +104,7 @@ for p in protocols:
 	station['voters_voted_outside_station'] = station.get('voters_voted_outside_station', 0)
 	station['voters_voted'] = (station['voters_voted_at_station'] + station['voters_voted_early'] + station['voters_voted_outside_station']) if station.get('voters_voted_at_station') is not None else None
 	station['foreign'] = station['region_code'] == 'RU-FRN'
-
-	p['loc'][-1] = uik_name + ' ' + p['loc'][-1]
-	station['turnouts'] = {k.replace('.', ':') : v for k, v in ik_turnouts.get(''.join(p['loc']), dict(turnouts = {}))['turnouts'].items()} or None
+	station['turnouts'] = ik_turnouts.get(tuple(p['loc']), None)
 
 	station.update(locations.pop((station['region_code'], station['precinct']), {}))
 
