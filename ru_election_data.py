@@ -37,7 +37,6 @@ def coord(s):
 
 glossary = json.load(open(args.glossary))
 protocols = jsons(argopen(args.protocols))
-uiks_from_cikrf = jsons(argopen(args.precincts))
 
 bad = collections.defaultdict(set)
 
@@ -48,7 +47,7 @@ for obj in jsons(argopen(args.turnouts)):
 	ik_turnouts[tuple(key)] = val
 
 locations = {}
-for u in uiks_from_cikrf:
+for u in jsons(argopen(args.precincts)):
 	region = ([k for k, v in glossary['regions'].items() for vv in v if vv in u['region']] + [None])[0]
 	number = int(''.join(c for c in u['text'] if c.isdigit()))
 
@@ -65,7 +64,6 @@ for u in uiks_from_cikrf:
 
 	locations[region, number] = precinct
 
-sum_or_none = lambda xs: None if all(x is None for x in xs) else sum(x for x in xs if x is not None)
 letters = lambda s: ''.join(c for c in s if c.isalpha() or c.isspace())
 
 stations = []
@@ -73,30 +71,40 @@ for p in protocols:
 	if len(p['loc']) != 3:
 		continue
 	region_name, tik_name, uik_name = p['loc']
-	uik_name = ''.join(c for c in uik_name if c.isdigit())
+	uik_num = ''.join(c for c in uik_name if c.isdigit())
 	tik_num, *tik_name = tik_name.split()
 	tik_name = ' '.join(tik_name)
-	if not uik_name:
+	if not uik_num:
 		continue
-	region_num = int(urllib.parse.parse_qs(p['url'])['region'][0])
 
 	lines = p['data']
 	if isinstance(lines, list):
-		lines = {l['line_name'] : l['line_val'] for l in lines}
+		lines = {l['line_name']: l['line_val'] for l in lines}
 
-	lines_get = lambda g: ([v for k, v in lines.items() if g in k] + [None])[0]
+	station = {f: sum(int(v)
+	                  for pat in pats
+	                  for k, v in lines.items()
+	                  if pat in k)
+	           for f, pats in glossary['fields'].items()}
+	for f, pats in glossary['fields'].items():
+		if not any(pat in k for pat in pats for k in lines.keys()):
+			station[f] = None
+			bad[f].update(lines)
 
-	station = {k : sum_or_none([(int(v) if v is not None else v) for v in map(lines_get, glossary['fields'][k]) ]) for k in glossary['fields']}
-	for k, v in station.items():
-		if v is None:
-			bad[k].update(lines)
-
-	station['region_code'] = ([k for k, v in glossary['regions'].items() for vv in v if vv in region_name] + [None])[0]
-	if station['region_code'] is None:
+	region_code = [r
+	               for r, pats in glossary['regions'].items()
+	               for pat in pats
+	               if pat in region_name]
+	if len(region_code) == 1:
+		region_code, = region_code
+		region_name  = glossary['regions'][region_code][0]
+	else:
+		region_code = None
 		bad['regions'].add(region_name)
 
-	station['region_name'] = glossary['regions'].get(station['region_code'], [region_name])[0]
-	station['precinct'] = int(uik_name)
+	station['region_code'] = region_code
+	station['region_name'] = region_name
+	station['precinct'] = int(uik_num)
 	station['tik_num']  = int(tik_num)
 	station['territory'] = tik_name.replace('Территориальная избирательная комиссия', 'ТИК').replace('города', 'г.').replace('района', 'р-на')
 	station['vote'] = {k_ : int(v) for k, v in lines.items() for k_ in [letters(k)] if k_.istitle()}
