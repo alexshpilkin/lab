@@ -99,7 +99,7 @@ for p in protocols:
 		region_code, = region_code
 		region_name  = glossary['regions'][region_code][0]
 	else:
-		region_code = None
+		region_code = ''
 		bad['regions'].add(region_name)
 
 	station['region_code'] = region_code
@@ -116,7 +116,7 @@ for p in protocols:
 
 	station.update(locations.pop((station['region_code'], station['precinct']), {}))
 
-	station['electoral_id'] = election_data.electoral_id(region_code = station['region_code'], date = args.date, election_name = args.election_name, station = station['precinct'], territory = station['territory'])
+	station['electoral_id'] = election_data.electoral_id(region_code = station['region_code'], date = args.date, election_name = args.election_name, station = station['precinct'], territory = station['tik_num'])
 
 	stations.append(station)
 
@@ -125,9 +125,7 @@ for k in locations.keys():
 
 if args.bad_json is not None:
 	with open(args.bad_json, 'w', newline='\r\n') as file:
-		json.dump({k : list(sorted(v)) for k, v in bad.items()}, file, ensure_ascii=False, indent=2, sort_keys=True)
-
-vote_kv = {'ballots_' + k.lower().replace(' ', '_') : k for s in stations for k in s['vote']}
+		json.dump({k : list(v) for k, v in bad.items()}, file, ensure_ascii=False, indent=2, sort_keys=True)
 
 
 num_candidates = max(len(s['vote']) for s in stations)
@@ -143,8 +141,6 @@ for s in stations:
 for s in stations:
 	for k, v in glossary['turnouts'].items():
 		s[k] = (s['turnouts'] or {}).get(v, np.nan)
-	for k, v in vote_kv.items():
-		s[k] = (s['vote'] or {}).get(v, 0)
 field_string_type = lambda field: 'U' + str(max(len(s.get(field, '')) for s in stations))
 candidate_fields = [(f'candidate{c}_name', field_string_type(f'candidate{c}_name')) for c in range(num_candidates)] + [(f'candidate{c}_ballots', int) for c in range(num_candidates)]
 dtype = [(field, field_string_type(field)) for field in ['region_code', 'region_name', 'territory', 'commission_address', 'station_address', 'electoral_id']] + [('tik_num', int), ('precinct', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + candidate_fields # [(k, int) for k in sorted(vote_kv)]
