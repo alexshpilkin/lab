@@ -35,8 +35,11 @@ def jsons(file):
 def coord(s):
 	return float(s.replace(' ', '')) if s else np.nan
 
+def letters(s):
+	return ''.join(c for c in s if c.isalpha() or c.isspace())
+
+
 glossary = json.load(open(args.glossary))
-protocols = jsons(argopen(args.protocols))
 
 bad = collections.defaultdict(set)
 
@@ -64,10 +67,8 @@ for u in jsons(argopen(args.precincts)):
 
 	locations[region, number] = precinct
 
-letters = lambda s: ''.join(c for c in s if c.isalpha() or c.isspace())
-
 stations = []
-for p in protocols:
+for p in jsons(argopen(args.protocols)):
 	if len(p['loc']) != 3:
 		continue
 	region_name, tik_name, uik_name = p['loc']
@@ -107,7 +108,9 @@ for p in protocols:
 	station['precinct'] = int(uik_num)
 	station['tik_num']  = int(tik_num)
 	station['territory'] = tik_name.replace('Территориальная избирательная комиссия', 'ТИК').replace('города', 'г.').replace('района', 'р-на')
-	station['vote'] = {k_ : int(v) for k, v in lines.items() for k_ in [letters(k)] if k_.istitle()}
+	station['vote'] = {letters(k): int(v)
+	                   for k, v in lines.items()
+	                   if letters(k).istitle() or 'партия' in k.lower()}
 	station['voters_voted_early'] = station.get('voters_voted_early', 0)
 	station['voters_voted_outside_station'] = station.get('voters_voted_outside_station', 0)
 	station['voters_voted'] = (station['voters_voted_at_station'] + station['voters_voted_early'] + station['voters_voted_outside_station']) if station.get('voters_voted_at_station') is not None else None
@@ -125,7 +128,7 @@ for k in locations.keys():
 
 if args.bad_json is not None:
 	with open(args.bad_json, 'w', newline='\r\n') as file:
-		json.dump({k : list(v) for k, v in bad.items()}, file, ensure_ascii=False, indent=2, sort_keys=True)
+		json.dump({k: sorted(v) for k, v in bad.items()}, file, ensure_ascii=False, indent=2, sort_keys=True)
 
 
 num_candidates = max(len(s['vote']) for s in stations)
