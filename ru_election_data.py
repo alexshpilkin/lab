@@ -3,13 +3,14 @@
 # python3 ru_election_data.py --protocols shpilkin/protocols_227_json.txt --turnouts shpilkin/ik_turnouts_json.txt --precincts shpilkin/uiks_from_cikrf_json.txt --tsv _RU_2018-03-18_president.tsv.gz
 
 
-import collections
 import argparse
+import collections
+import csv
 import io
 import json
+import math
 import urllib.parse
 import urllib.request
-import numpy as np
 
 import election_data
 
@@ -33,7 +34,7 @@ def jsons(file):
 	return (json.loads(line) for line in file if line)
 
 def coord(s):
-	return float(s.replace(' ', '')) if s else np.nan
+	return format(float(s.replace(' ', '')) if s else math.nan, '.6f')
 
 def letters(s):
 	return ''.join(c for c in s if c.isalpha() or c.isspace())
@@ -42,11 +43,30 @@ def letters(s):
 glossary = json.load(open(args.glossary))
 
 bad = collections.defaultdict(set)
+empty = {
+	'region_code': None,
+	'region_name': None,
+	'territory': None,
+	'commission_address': None,
+	'station_address': None,
+	'electoral_id': None,
+	'tik_num': -1,
+	'precinct': -1,
+	'foreign': -1,
+	'commission_lat': math.nan,
+	'commission_lon': math.nan,
+	'station_lat': math.nan,
+	'station_lon': math.nan,
+	'voters_registered': -1,
+	'voters_voted': -1,
+}
+empty.update((k, -1) for k in glossary['fields'].keys())
+empty.update((k, math.nan) for k in glossary['turnouts'].keys())
 
 ik_turnouts = {}
 for obj in jsons(argopen(args.turnouts)):
 	key = obj['loc'][:-1] + [obj['ik_name']]
-	val = {t.replace('.', ':'): v for t, v in obj['turnouts'].items()}
+	val = {t.replace('.', ':'): format(v, '.4f') for t, v in obj['turnouts'].items()}
 	ik_turnouts[tuple(key)] = val
 
 locations = {}
@@ -89,7 +109,7 @@ for p in jsons(argopen(args.protocols)):
 	           for f, pats in glossary['fields'].items()}
 	for f, pats in glossary['fields'].items():
 		if not any(pat in k for pat in pats for k in lines.keys()):
-			station[f] = None
+			station[f] = -1
 			bad[f].update(lines)
 
 	region_code = [r
@@ -114,9 +134,13 @@ for p in jsons(argopen(args.protocols)):
 	station['voters_voted_early'] = station.get('voters_voted_early', 0)
 	station['voters_voted_outside_station'] = station.get('voters_voted_outside_station', 0)
 	station['voters_voted'] = (station['voters_voted_at_station'] + station['voters_voted_early'] + station['voters_voted_outside_station']) if station.get('voters_voted_at_station') is not None else None
-	station['foreign'] = station['region_code'] == 'RU-FRN'
+	station['foreign'] = 1 if station['region_code'] == 'RU-FRN' else 0
 	station['turnouts'] = ik_turnouts.get(tuple(p['loc']), None)
 
+	station['commission_lat'] = math.nan
+	station['commission_lon'] = math.nan
+	station['station_lat'] = math.nan
+	station['station_lon'] = math.nan
 	station.update(locations.pop((station['region_code'], station['precinct']), {}))
 
 	station['electoral_id'] = election_data.electoral_id(region_code = station['region_code'], date = args.date, election_name = args.election_name, station = station['precinct'], territory = station['tik_num'])
@@ -143,11 +167,17 @@ for s in stations:
 
 for s in stations:
 	for k, v in glossary['turnouts'].items():
-		s[k] = (s['turnouts'] or {}).get(v, np.nan)
-field_string_type = lambda field: 'U' + str(max(len(s.get(field, '')) for s in stations))
-candidate_fields = [(f'candidate{c}_name', field_string_type(f'candidate{c}_name')) for c in range(num_candidates)] + [(f'candidate{c}_ballots', int) for c in range(num_candidates)]
-dtype = [(field, field_string_type(field)) for field in ['region_code', 'region_name', 'territory', 'commission_address', 'station_address', 'electoral_id']] + [('tik_num', int), ('precinct', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + candidate_fields # [(k, int) for k in sorted(vote_kv)]
+		s[k] = (s['turnouts'] or {}).get(v, math.nan)
 
 if args.tsv is not None:
-	arr = np.array([tuple(s.get(n, "" if isinstance(t, str) else np.nan) for n, t in dtype) for s in stations], dtype=dtype)
-	np.savetxt(args.tsv, arr, comments='', header='\t'.join(arr.dtype.names), fmt='\t'.join({int: '%d', bool: '%d', float: '%.6f', np.float32: '%.4f'}.get(t, '%s') for n, t in dtype), delimiter='\t', encoding='utf-8')
+	fields  = list(empty.keys())
+	fields += ['candidate{}_name'.format(c) for c in range(num_candidates)]
+	fields += ['candidate{}_ballots'.format(c) for c in range(num_candidates)]
+
+	with open(args.tsv, 'w', newline='\r\n') as out:
+		wr = csv.DictWriter(out, fieldnames=fields, dialect=None, delimiter='\t', lineterminator='\n', quotechar=None, quoting=csv.QUOTE_NONE)
+		wr.writeheader()
+		for s in stations:
+			s.pop('vote')
+			s.pop('turnouts')
+			wr.writerow(s)
