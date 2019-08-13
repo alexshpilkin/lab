@@ -85,24 +85,20 @@ for obj in jsons(argopen(args.turnouts)):
 	if len(obj['loc']) < 3:
 		continue
 	key = regioncode(obj['loc'][0]), precinctnumber(obj['ik_name'])
-
 	for k, t in glossary['turnouts'].items():
 		precincts[key][k] = format(obj['turnouts'].get(t, math.nan), '.4f')
 
 
-locations = {}
-for u in jsons(argopen(args.precincts)):
-	key = regioncode(u['region']), precinctnumber(u['text'])
+# Locations
 
-	precinct = {}
-	precinct['commission_address'] = u['address'].strip().replace('\t', ' ')
-	precinct['commission_lat'] = format(coord(u['coords']['lat']), '.6f')
-	precinct['commission_lon'] = format(coord(u['coords']['lon']), '.6f')
-	precinct['station_address'] = u['voteaddress'].strip().replace('\t', ' ')
-	precinct['station_lat'] = format(coord(u['votecoords']['lat']), '.6f')
-	precinct['station_lon'] = format(coord(u['votecoords']['lon']), '.6f')
-
-	locations[key] = precinct
+for obj in jsons(argopen(args.precincts)):
+	key = regioncode(obj['region']), precinctnumber(obj['text'])
+	precincts[key]['commission_address'] = obj['address'].strip().replace('\t', ' ')
+	precincts[key]['commission_lat'] = format(coord(obj['coords']['lat']), '.6f')
+	precincts[key]['commission_lon'] = format(coord(obj['coords']['lon']), '.6f')
+	precincts[key]['station_address'] = obj['voteaddress'].strip().replace('\t', ' ')
+	precincts[key]['station_lat'] = format(coord(obj['votecoords']['lat']), '.6f')
+	precincts[key]['station_lon'] = format(coord(obj['votecoords']['lon']), '.6f')
 
 stations = []
 for p in jsons(argopen(args.protocols)):
@@ -148,19 +144,15 @@ for p in jsons(argopen(args.protocols)):
 
 	for k in glossary['turnouts'].keys():
 		station[k] = 'nan'
-	station.update(precincts.get(key, {}))
 	station['commission_lat'] = 'nan'
 	station['commission_lon'] = 'nan'
 	station['station_lat'] = 'nan'
 	station['station_lon'] = 'nan'
-	station.update(locations.pop(key, {}))
+	station.update(precincts.get(key, {}))
 
 	station['electoral_id'] = election_data.electoral_id(region_code = station['region_code'], date = args.date, election_name = args.election_name, station = station['precinct'], territory = station['tik_num'])
 
 	stations.append(station)
-
-for k in locations.keys():
-	bad['precincts'].add(k)
 
 if args.bad_json is not None:
 	with open(args.bad_json, 'w', newline='\r\n') as file:
