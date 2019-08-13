@@ -34,7 +34,7 @@ def jsons(file):
 	return (json.loads(line) for line in file if line)
 
 def coord(s):
-	return format(float(s.replace(' ', '')) if s else math.nan, '.6f')
+	return float(s.replace(' ', '')) if s else math.nan
 
 def letters(s):
 	return ''.join(c for c in s if c.isalpha() or c.isspace())
@@ -42,7 +42,19 @@ def letters(s):
 
 glossary = json.load(open(args.glossary))
 
-bad = collections.defaultdict(set)
+def regioncode(name):
+	codes = [r
+	         for r, pats in glossary['regions'].items()
+	         for pat in pats
+	         if pat in name]
+	if len(codes) != 1:
+		bad['regions'].add(name)
+	return codes[0] if codes else ''
+
+def precinctnumber(name):
+	num = ''.join(c for c in name if c.isdigit())
+	return int(num) if num else -1
+
 empty = {
 	'region_code': None,
 	'region_name': None,
@@ -52,50 +64,60 @@ empty = {
 	'precinct': -1,
 	'electoral_id': None,
 	'commission_address': None,
-	'commission_lat': math.nan,
-	'commission_lon': math.nan,
+	'commission_lat': 'nan',
+	'commission_lon': 'nan',
 	'station_address': None,
-	'station_lat': math.nan,
-	'station_lon': math.nan,
+	'station_lat': 'nan',
+	'station_lon': 'nan',
 	'voters_voted': -1,
 }
 empty.update((k, -1) for k in glossary['fields'].keys())
 empty.update((k, math.nan) for k in glossary['turnouts'].keys())
 
-ik_turnouts = {}
+
+precincts = collections.defaultdict(dict)
+bad = collections.defaultdict(set)
+
+
+# Turnouts
+
 for obj in jsons(argopen(args.turnouts)):
-	key = obj['loc'][:-1] + [obj['ik_name']]
-	val = {t.replace('.', ':'): format(v, '.4f') for t, v in obj['turnouts'].items()}
-	ik_turnouts[tuple(key)] = val
+	if len(obj['loc']) < 3:
+		continue
+	key = regioncode(obj['loc'][0]), precinctnumber(obj['ik_name'])
+
+	for k, t in glossary['turnouts'].items():
+		precincts[key][k] = format(obj['turnouts'].get(t, math.nan), '.4f')
+
 
 locations = {}
 for u in jsons(argopen(args.precincts)):
-	region = ([k for k, v in glossary['regions'].items() for vv in v if vv in u['region']] + [None])[0]
-	number = int(''.join(c for c in u['text'] if c.isdigit()))
-
-	if region is None:
-		bad['regions'].add(u['region'])
+	key = regioncode(u['region']), precinctnumber(u['text'])
 
 	precinct = {}
 	precinct['commission_address'] = u['address'].strip().replace('\t', ' ')
-	precinct['commission_lat'] = coord(u['coords']['lat'])
-	precinct['commission_lon'] = coord(u['coords']['lon'])
+	precinct['commission_lat'] = format(coord(u['coords']['lat']), '.6f')
+	precinct['commission_lon'] = format(coord(u['coords']['lon']), '.6f')
 	precinct['station_address'] = u['voteaddress'].strip().replace('\t', ' ')
-	precinct['station_lat'] = coord(u['votecoords']['lat'])
-	precinct['station_lon'] = coord(u['votecoords']['lon'])
+	precinct['station_lat'] = format(coord(u['votecoords']['lat']), '.6f')
+	precinct['station_lon'] = format(coord(u['votecoords']['lon']), '.6f')
 
-	locations[region, number] = precinct
+	locations[key] = precinct
 
 stations = []
 for p in jsons(argopen(args.protocols)):
 	if len(p['loc']) != 3:
 		continue
 	region_name, tik_name, uik_name = p['loc']
-	uik_num = ''.join(c for c in uik_name if c.isdigit())
+	region_code = regioncode(region_name)
+	if region_code:
+		region_name = glossary['regions'][region_code][0]
+	uik_num = precinctnumber(uik_name)
 	tik_num, *tik_name = tik_name.split()
 	tik_name = ' '.join(tik_name)
-	if not uik_num:
+	if uik_num < 0:
 		continue
+	key = region_code, uik_num
 
 	lines = p['data']
 	if isinstance(lines, list):
@@ -111,21 +133,10 @@ for p in jsons(argopen(args.protocols)):
 			station[f] = -1
 			bad[f].update(lines)
 
-	region_code = [r
-	               for r, pats in glossary['regions'].items()
-	               for pat in pats
-	               if pat in region_name]
-	if len(region_code) == 1:
-		region_code, = region_code
-		region_name  = glossary['regions'][region_code][0]
-	else:
-		region_code = ''
-		bad['regions'].add(region_name)
-
 	station['region_code'] = region_code
 	station['region_name'] = region_name
-	station['precinct'] = int(uik_num)
-	station['tik_num']  = int(tik_num)
+	station['precinct'] = uik_num
+	station['tik_num']  = tik_num
 	station['territory'] = tik_name.replace('Территориальная избирательная комиссия', 'ТИК').replace('города', 'г.').replace('района', 'р-на')
 	station['vote'] = {letters(k): int(v)
 	                   for k, v in lines.items()
@@ -134,13 +145,15 @@ for p in jsons(argopen(args.protocols)):
 	station['voters_voted_outside_station'] = station.get('voters_voted_outside_station', 0)
 	station['voters_voted'] = (station['voters_voted_at_station'] + station['voters_voted_early'] + station['voters_voted_outside_station']) if station.get('voters_voted_at_station') is not None else None
 	station['foreign'] = 1 if station['region_code'] == 'RU-FRN' else 0
-	station['turnouts'] = ik_turnouts.get(tuple(p['loc']), None)
 
-	station['commission_lat'] = math.nan
-	station['commission_lon'] = math.nan
-	station['station_lat'] = math.nan
-	station['station_lon'] = math.nan
-	station.update(locations.pop((station['region_code'], station['precinct']), {}))
+	for k in glossary['turnouts'].keys():
+		station[k] = 'nan'
+	station.update(precincts.get(key, {}))
+	station['commission_lat'] = 'nan'
+	station['commission_lon'] = 'nan'
+	station['station_lat'] = 'nan'
+	station['station_lon'] = 'nan'
+	station.update(locations.pop(key, {}))
 
 	station['electoral_id'] = election_data.electoral_id(region_code = station['region_code'], date = args.date, election_name = args.election_name, station = station['precinct'], territory = station['tik_num'])
 
@@ -161,12 +174,7 @@ for s in stations:
 		s[f'candidate{c}_ballots'] = v
 	for c in range(len(s['vote']), num_candidates):
 		s[f'candidate{c}_name'] = ''
-		s[f'candidates{c}_ballots'] = 0
-
-
-for s in stations:
-	for k, v in glossary['turnouts'].items():
-		s[k] = (s['turnouts'] or {}).get(v, math.nan)
+		s[f'candidates{c}_ballots'] = -1
 
 if args.tsv is not None:
 	fields  = list(empty.keys())
@@ -178,5 +186,4 @@ if args.tsv is not None:
 		wr.writeheader()
 		for s in stations:
 			s.pop('vote')
-			s.pop('turnouts')
 			wr.writerow(s)
