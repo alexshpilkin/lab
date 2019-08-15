@@ -39,9 +39,6 @@ def coord(s):
 def letters(s):
 	return ''.join(c for c in s if c.isalpha() or c.isspace())
 
-
-glossary = json.load(open(args.glossary))
-
 def regioncode(name):
 	codes = [r
 	         for r, pats in glossary['regions'].items()
@@ -54,6 +51,32 @@ def regioncode(name):
 def precinctnumber(name):
 	num = ''.join(c for c in name if c.isdigit())
 	return int(num) if num else -1
+
+def precinct(loc):
+	if len(loc) < 3:
+		return None
+	region_name, tik_name, uik_name = loc
+	region_code = regioncode(region_name)
+	if region_code:
+		region_name = glossary['regions'][region_code][0]
+	tik_num, *tik_name = tik_name.split()
+	tik_name = ' '.join(tik_name).replace('Территориальная избирательная комиссия', 'ТИК').replace('города', 'г.').replace('района', 'р-на')
+	uik_num = precinctnumber(uik_name)
+	if uik_num < 0:
+		return None
+
+	p = precincts[region_code, uik_num]
+	p['region_code'] = region_code
+	p['region_name'] = region_name
+	p['tik_num'] = int(tik_num)
+	p['territory'] = tik_name
+	p['precinct'] = uik_num
+	return p
+
+
+glossary = json.load(open(args.glossary))
+precincts = collections.defaultdict(dict)
+bad = collections.defaultdict(set)
 
 empty = {
 	'region_code': None,
@@ -75,45 +98,34 @@ empty.update((k, -1) for k in glossary['fields'].keys())
 empty.update((k, math.nan) for k in glossary['turnouts'].keys())
 
 
-precincts = collections.defaultdict(dict)
-bad = collections.defaultdict(set)
-
-
 # Turnouts
 
 for obj in jsons(argopen(args.turnouts)):
-	if len(obj['loc']) < 3:
+	p = precinct(obj['loc'][:-1] + [obj['ik_name']])
+	if p is None:
 		continue
-	key = regioncode(obj['loc'][0]), precinctnumber(obj['ik_name'])
 	for k, t in glossary['turnouts'].items():
-		precincts[key][k] = format(obj['turnouts'].get(t, math.nan), '.4f')
+		p[k] = format(obj['turnouts'].get(t, math.nan), '.4f')
 
 
 # Locations
 
 for obj in jsons(argopen(args.precincts)):
-	key = regioncode(obj['region']), precinctnumber(obj['text'])
-	precincts[key]['commission_address'] = obj['address'].strip().replace('\t', ' ')
-	precincts[key]['commission_lat'] = format(coord(obj['coords']['lat']), '.6f')
-	precincts[key]['commission_lon'] = format(coord(obj['coords']['lon']), '.6f')
-	precincts[key]['station_address'] = obj['voteaddress'].strip().replace('\t', ' ')
-	precincts[key]['station_lat'] = format(coord(obj['votecoords']['lat']), '.6f')
-	precincts[key]['station_lon'] = format(coord(obj['votecoords']['lon']), '.6f')
+	p = precincts[regioncode(obj['region']), precinctnumber(obj['text'])]
+	p['commission_address'] = obj['address'].strip().replace('\t', ' ')
+	p['commission_lat'] = format(coord(obj['coords']['lat']), '.6f')
+	p['commission_lon'] = format(coord(obj['coords']['lon']), '.6f')
+	p['station_address'] = obj['voteaddress'].strip().replace('\t', ' ')
+	p['station_lat'] = format(coord(obj['votecoords']['lat']), '.6f')
+	p['station_lon'] = format(coord(obj['votecoords']['lon']), '.6f')
+
+
+# Protocols
 
 stations = []
 for p in jsons(argopen(args.protocols)):
 	if len(p['loc']) != 3:
 		continue
-	region_name, tik_name, uik_name = p['loc']
-	region_code = regioncode(region_name)
-	if region_code:
-		region_name = glossary['regions'][region_code][0]
-	uik_num = precinctnumber(uik_name)
-	tik_num, *tik_name = tik_name.split()
-	tik_name = ' '.join(tik_name)
-	if uik_num < 0:
-		continue
-	key = region_code, uik_num
 
 	lines = p['data']
 	if isinstance(lines, list):
@@ -129,18 +141,9 @@ for p in jsons(argopen(args.protocols)):
 			station[f] = -1
 			bad[f].update(lines)
 
-	station['region_code'] = region_code
-	station['region_name'] = region_name
-	station['precinct'] = uik_num
-	station['tik_num']  = tik_num
-	station['territory'] = tik_name.replace('Территориальная избирательная комиссия', 'ТИК').replace('города', 'г.').replace('района', 'р-на')
 	station['vote'] = {letters(k): int(v)
 	                   for k, v in lines.items()
 	                   if letters(k).istitle() or 'партия' in k.lower()}
-	station['voters_voted_early'] = station.get('voters_voted_early', 0)
-	station['voters_voted_outside_station'] = station.get('voters_voted_outside_station', 0)
-	station['voters_voted'] = (station['voters_voted_at_station'] + station['voters_voted_early'] + station['voters_voted_outside_station']) if station.get('voters_voted_at_station') is not None else None
-	station['foreign'] = 1 if station['region_code'] == 'RU-FRN' else 0
 
 	for k in glossary['turnouts'].keys():
 		station[k] = 'nan'
@@ -148,7 +151,12 @@ for p in jsons(argopen(args.protocols)):
 	station['commission_lon'] = 'nan'
 	station['station_lat'] = 'nan'
 	station['station_lon'] = 'nan'
-	station.update(precincts.get(key, {}))
+	station.update(precinct(p['loc']))
+
+	station['voters_voted_early'] = station.get('voters_voted_early', 0)
+	station['voters_voted_outside_station'] = station.get('voters_voted_outside_station', 0)
+	station['voters_voted'] = (station['voters_voted_at_station'] + station['voters_voted_early'] + station['voters_voted_outside_station']) if station.get('voters_voted_at_station') is not None else None
+	station['foreign'] = 1 if station['region_code'] == 'RU-FRN' else 0
 
 	station['electoral_id'] = election_data.electoral_id(region_code = station['region_code'], date = args.date, election_name = args.election_name, station = station['precinct'], territory = station['tik_num'])
 
