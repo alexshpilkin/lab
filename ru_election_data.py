@@ -8,7 +8,6 @@ import collections
 import csv
 import io
 import json
-import math
 import os.path
 import urllib.parse
 import urllib.request
@@ -37,7 +36,7 @@ def jsons(file):
 	return (json.loads(line) for line in file if line)
 
 def coord(s):
-	return float(s.replace(' ', '')) if s else math.nan
+	return float(s.replace(' ', '') if s else 'nan')
 
 def letters(s):
 	return ''.join(c for c in s if c.isalpha() or c.isspace())
@@ -102,7 +101,7 @@ empty = {
 	'voters_voted': -1,
 }
 empty.update((k, -1) for k in glossary['fields'].keys())
-empty.update((k, math.nan) for k in glossary['turnouts'].keys())
+empty.update((k, 'nan') for k in glossary['turnouts'].keys())
 
 
 # Turnouts
@@ -113,7 +112,7 @@ if args.turnouts is not None:
 		if p is None:
 			continue
 		for k, t in glossary['turnouts'].items():
-			p[k] = format(obj['turnouts'].get(t, math.nan), '.4f')
+			p[k] = format(obj['turnouts'].get(t, float('nan')), '.4f')
 
 
 # Protocols
