@@ -14,6 +14,7 @@ import urllib.request
 
 import election_data
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--glossary', default = 'ru_election_data.json')
 parser.add_argument('--protocols', default = 'https://github.com/schitaytesami/data/releases/download/20180318/protocols_227_json.txt')
@@ -24,6 +25,7 @@ parser.add_argument('--bad-json')
 parser.add_argument('--date', default = '2018-03-18')
 parser.add_argument('--election-name', default = 'president')
 args = parser.parse_args()
+
 
 def argopen(url):
 	return urllib.request.urlopen(url) if '//' in url else open(url, 'rb')
@@ -112,18 +114,6 @@ for obj in jsons(argopen(args.turnouts)):
 		p[k] = format(obj['turnouts'].get(t, math.nan), '.4f')
 
 
-# Locations
-
-for obj in jsons(argopen(args.precincts)):
-	p = precincts[regioncode(obj['region']), precinctnumber(obj['text'])]
-	p['commission_address'] = obj['address'].strip().replace('\t', ' ')
-	p['commission_lat'] = format(coord(obj['coords']['lat']), '.6f')
-	p['commission_lon'] = format(coord(obj['coords']['lon']), '.6f')
-	p['station_address'] = obj['voteaddress'].strip().replace('\t', ' ')
-	p['station_lat'] = format(coord(obj['votecoords']['lat']), '.6f')
-	p['station_lon'] = format(coord(obj['votecoords']['lon']), '.6f')
-
-
 # Protocols
 
 for obj in jsons(argopen(args.protocols)):
@@ -152,6 +142,18 @@ for obj in jsons(argopen(args.protocols)):
 		p['voters_voted'] = (p['voters_voted_at_station'] +
 		                     max(0, p.get('voters_voted_early', -1)) +
 		                     max(0, p.get('voters_voted_outside_station', -1)))
+
+
+# Locations
+
+for obj in jsons(argopen(args.precincts)):
+	p = precincts[regioncode(obj['region']), precinctnumber(obj['text'])]
+	p['commission_address'] = obj['address'].strip().replace('\t', ' ')
+	p['commission_lat'] = format(coord(obj['coords']['lat']), '.6f')
+	p['commission_lon'] = format(coord(obj['coords']['lon']), '.6f')
+	p['station_address'] = obj['voteaddress'].strip().replace('\t', ' ')
+	p['station_lat'] = format(coord(obj['votecoords']['lat']), '.6f')
+	p['station_lon'] = format(coord(obj['votecoords']['lon']), '.6f')
 
 
 # Postprocessing
