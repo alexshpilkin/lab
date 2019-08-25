@@ -51,43 +51,46 @@ def regioncode(name):
 	return codes[0] if codes else ''
 
 def precinctnumber(name):
-	num = ''.join(c for c in name if c.isdigit())
-	return int(num) if num else -1
+	if name[0].isdigit():
+		return int(name.split()[0])
+	else:
+		num = ''.join(c for c in name if c.isdigit())
+		return int(num) if num else -1
 
 def precinct(loc):
 	if len(loc) < 3:
 		return None
-	region_name, tik_name, uik_name = loc
+	prefixes.add(tuple(loc[:-1]))
+
+	region_name = loc[0]
 	region_code = regioncode(region_name)
-	tik_num, *tik_name = tik_name.split()
-	tik_num = int(tik_num)
-	tik_name = ' '.join(tik_name).replace('Территориальная избирательная комиссия', 'ТИК').replace('города', 'г.').replace('района', 'р-на')
-	uik_num = precinctnumber(uik_name)
+	uik_num = precinctnumber(loc[-1])
 	if uik_num < 0:
 		return None
 
 	p = precincts[region_code, uik_num]
+	p['loc'] = loc
 	p['region_code'] = region_code
 	if region_code:
 		p['region_name'] = glossary['regions'][region_code][0]
 		p['foreign'] = 1 if region_code.endswith('-FRN') else 0
 	else:
 		p['region_name'] = region_name
-	p['tik_num'] = tik_num
-	p['territory'] = tik_name
 	p['precinct'] = uik_num
-	p['electoral_id'] = election_data.electoral_id(region_code=region_code, date=args.date, election_name=args.name, station=uik_num, territory=tik_num)
 	return p
 
 
 glossary = json.load(open(args.glossary))
 precincts = collections.defaultdict(lambda: dict(empty))
+prefixes = set()
 bad = collections.defaultdict(set)
 
 empty = {
 	'region_code': None,
 	'region_name': None,
 	'foreign': -1,
+	'oik_num': -1,
+	'district': None,
 	'tik_num': -1,
 	'territory': None,
 	'precinct': -1,
@@ -108,7 +111,7 @@ empty.update((k, 'nan') for k in glossary['turnouts'].keys())
 
 if args.turnouts is not None:
 	for obj in jsons(argopen(args.turnouts)):
-		p = precinct(obj['loc'][:-1] + [obj['ik_name']])
+		p = precinct(obj['loc'])
 		if p is None:
 			continue
 		for k, t in glossary['turnouts'].items():
@@ -181,6 +184,18 @@ for p in precincts.values():
 		p['candidate{}_name'.format(i)] = ''
 		p['candidate{}_ballots'.format(i)] = -1
 
+	loc = p.pop('loc', None)
+	if loc is None:
+		continue
+	if len(loc) > 3:
+		oik_num, *oik_name = loc[1].split()
+		p['oik_num'] = int(oik_num)
+		p['district'] = ' '.join(oik_name)
+	tik_num, *tik_name = loc[-2].split()
+	p['tik_num'] = int(tik_num)
+	p['territory'] = tik_name = ' '.join(tik_name).replace('Территориальная избирательная комиссия', 'ТИК').replace('города', 'г.').replace('района', 'р-на')
+	p['electoral_id'] = election_data.electoral_id(region_code=p['region_code'], date=args.date, election_name=args.name, station=p['precinct'], territory=p['tik_num'], district=p['oik_num'] if p['oik_num'] >= 0 else None)
+
 if args.bad_json is not None:
 	with open(args.bad_json, 'w', newline='\r\n') as file:
 		json.dump({k: sorted(v) for k, v in bad.items()}, file, ensure_ascii=False, indent=2, sort_keys=True)
@@ -193,4 +208,6 @@ with open(args.output, 'w', newline='\r\n') as out:
 	wr = csv.DictWriter(out, fieldnames=fields, dialect=None, delimiter='\t', lineterminator='\n', quotechar=None, quoting=csv.QUOTE_NONE)
 	wr.writeheader()
 	for p in precincts.values():
+		if p.pop('loc', ()) in prefixes:
+			continue
 		wr.writerow(p)
