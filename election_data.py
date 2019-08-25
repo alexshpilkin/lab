@@ -7,7 +7,7 @@ import urllib.request
 import numpy as np
 import numpy.lib.recfunctions # http://pyopengl.sourceforge.net/pydoc/numpy.lib.recfunctions.html
 
-RU_LEADER = ['Путин', 'Медведев', 'Слуга народу']
+RU_LEADER = ['Путин', 'Медведев']
 RU_TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя',
                'ABVGDEEZZIJKLMNOPRSTUFHCCSSYYYEUAabvgdeezzijklmnoprstufhccssyyyeua')
 
