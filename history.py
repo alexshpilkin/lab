@@ -42,7 +42,7 @@ if __name__ == '__main__':
 	matplotlib.use('Agg')
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument('data', nargs='?', metavar='DATA', default='https://github.com/schitaytesami/lab/releases/download/data-v2/2018.tsv.gz', help='Data file to use, in TSV, NPY or NPZ format')
+	parser.add_argument('data', nargs='?', metavar='DATA', default='https://github.com/schitaytesami/lab/releases/download/data-v2/2018.tsv.gz', help='Data file to use')
 	parser.add_argument('--bin-width', default=0.25, type=float, help='Bin width in percentage points')
 	parser.add_argument('--min-size', default=0, type=int, help='Minimum precinct size to include')
 	parser.add_argument('--dpi', default=None, type=int, help='Resolution of the output image')

@@ -1,143 +1,196 @@
 #!/usr/bin/env python3
 
-# python3 ru_election_data.py --protocols-jsonl shpilkin/protocols_227_json.txt --turnouts-jsonl shpilkin/ik_turnouts_json.txt --precincts-jsonl shpilkin/uiks_from_cikrf_json.txt --tsv _RU_2018-03-18_president.tsv.gz
+# python3 ru_election_data.py --date 2018-03-18 --name president --protocols shpilkin/protocols_227_json.txt --turnouts shpilkin/ik_turnouts_json.txt --locations shpilkin/uiks_from_cikrf_json.txt _RU_2018-03-18_president.tsv.gz
 
 
-import collections
 import argparse
+import collections
+import csv
+import io
 import json
+import os.path
 import urllib.parse
 import urllib.request
-import numpy as np
 
 import election_data
 
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--glossary', default = 'ru_election_data.json')
-parser.add_argument('--protocols-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/protocols_227_json.txt')
-parser.add_argument('--turnouts-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/ik_turnouts_json.txt')
-parser.add_argument('--precincts-jsonl', default = 'https://github.com/schitaytesami/data/releases/download/20180318/uiks_from_cikrf_json.txt')
-parser.add_argument('--json')
-parser.add_argument('--tsv')
+parser.add_argument('--glossary', default=os.path.join(os.path.dirname(__file__), 'ru_election_data.json'))
+parser.add_argument('--protocols')
+parser.add_argument('--turnouts')
+parser.add_argument('--locations')
 parser.add_argument('--bad-json')
-parser.add_argument('--date', default = '2018-03-18')
-parser.add_argument('--election-name', default = 'president')
+parser.add_argument('--date')
+parser.add_argument('--name')
+parser.add_argument('output', nargs='?', metavar='OUTPUT')
 args = parser.parse_args()
 
-read_all_lines = lambda file_path: filter(bool, (urllib.request.urlopen if file_path.startswith('http') else (lambda p: open(p, 'rb')))(file_path).read().decode('utf-8').split('\n'))
-glossary = json.load(open(args.glossary))
-protocols = map(json.loads, read_all_lines(args.protocols_jsonl))
-ik_turnouts = {''.join(s['loc']) : s for s in map(json.loads, read_all_lines(args.turnouts_jsonl))}
-uiks_from_cikrf = map(json.loads, read_all_lines(args.precincts_jsonl))
 
+def argopen(url):
+	return urllib.request.urlopen(url) if '//' in url else open(url, 'rb')
+
+def jsons(file):
+	# TODO gzip, json-seq support?
+	file = io.TextIOWrapper(file, encoding='utf-8')
+	return (json.loads(line) for line in file if line)
+
+def coord(s):
+	return float(s.replace(' ', '') if s else 'nan')
+
+def letters(s):
+	return ''.join(c for c in s if c.isalpha() or c.isspace())
+
+def regioncode(name):
+	codes = [r
+	         for r, pats in glossary['regions'].items()
+	         for pat in pats
+	         if pat in name]
+	if len(codes) != 1:
+		bad['regions'].add(name)
+	return codes[0] if codes else ''
+
+def precinctnumber(name):
+	num = ''.join(c for c in name if c.isdigit())
+	return int(num) if num else -1
+
+def precinct(loc):
+	if len(loc) < 3:
+		return None
+	region_name, tik_name, uik_name = loc
+	region_code = regioncode(region_name)
+	tik_num, *tik_name = tik_name.split()
+	tik_num = int(tik_num)
+	tik_name = ' '.join(tik_name).replace('Территориальная избирательная комиссия', 'ТИК').replace('города', 'г.').replace('района', 'р-на')
+	uik_num = precinctnumber(uik_name)
+	if uik_num < 0:
+		return None
+
+	p = precincts[region_code, uik_num]
+	p['region_code'] = region_code
+	if region_code:
+		p['region_name'] = glossary['regions'][region_code][0]
+		p['foreign'] = 1 if region_code.endswith('-FRN') else 0
+	else:
+		p['region_name'] = region_name
+	p['tik_num'] = tik_num
+	p['territory'] = tik_name
+	p['precinct'] = uik_num
+	p['electoral_id'] = election_data.electoral_id(region_code=region_code, date=args.date, election_name=args.name, station=uik_num, territory=tik_num)
+	return p
+
+
+glossary = json.load(open(args.glossary))
+precincts = collections.defaultdict(lambda: dict(empty))
 bad = collections.defaultdict(set)
 
-coord = lambda s: float(s.replace(' ', '')) if s else np.nan
-locations = {}
-for u in uiks_from_cikrf:
-	region = ([k for k, v in glossary['regions'].items() for vv in v if vv in u['region']] + [None])[0]
-	number = int(''.join(c for c in u['text'] if c.isdigit()))
+empty = {
+	'region_code': None,
+	'region_name': None,
+	'foreign': -1,
+	'tik_num': -1,
+	'territory': None,
+	'precinct': -1,
+	'electoral_id': None,
+	'commission_address': None,
+	'commission_lat': 'nan',
+	'commission_lon': 'nan',
+	'station_address': None,
+	'station_lat': 'nan',
+	'station_lon': 'nan',
+	'voters_voted': -1,
+}
+empty.update((k, -1) for k in glossary['fields'].keys())
+empty.update((k, 'nan') for k in glossary['turnouts'].keys())
 
-	if region is None:
-		bad['regions'].add(u['region'])
 
-	precinct = {}
-	precinct['commission_address'] = u['address'].strip().replace('\t', ' ')
-	precinct['commission_lat'] = coord(u['coords']['lat'])
-	precinct['commission_lon'] = coord(u['coords']['lon'])
-	precinct['station_address'] = u['voteaddress'].strip().replace('\t', ' ')
-	precinct['station_lat'] = coord(u['votecoords']['lat'])
-	precinct['station_lon'] = coord(u['votecoords']['lon'])
-	precinct['members'] = [{'name': m['ФИО'],
-	                        'position': {'Председатель': 'chairman', 'Зам.председателя': 'vice-chairman', 'Секретарь': 'secretary', 'Член': 'member'}[m['Статус']],
-	                        'delegated_by': m['Кем предложен в состав комиссии']}
-	                       for m in u['members']]
+# Turnouts
 
-	locations[(region, number)] = precinct
+if args.turnouts is not None:
+	for obj in jsons(argopen(args.turnouts)):
+		p = precinct(obj['loc'][:-1] + [obj['ik_name']])
+		if p is None:
+			continue
+		for k, t in glossary['turnouts'].items():
+			p[k] = format(obj['turnouts'].get(t, float('nan')), '.4f')
 
-sum_or_none = lambda xs: None if all(x is None for x in xs) else sum(x for x in xs if x is not None)
-letters = lambda s: ''.join(c for c in s if c.isalpha() or c.isspace())
 
-stations = []
-for p in protocols:
-	election_name, tik_name, uik_name = (p['loc'] + ['', '', ''])[:3]
-	uik_name = ''.join(c for c in uik_name if c.isdigit())
-	tik_splitted = tik_name.split()
-	tik_num, tik_name = tik_splitted[0], ' '.join(tik_splitted[1:])
-	region_num = int(urllib.parse.parse_qs(p['url'])['region'][0])
-	region_name = election_name
+# Protocols
 
-	if not uik_name:
-		continue
+if args.protocols is not None:
+	for obj in jsons(argopen(args.protocols)):
+		p = precinct(obj['loc'])
+		if p is None:
+			continue
 
-	lines = p['data']
-	if isinstance(lines, list):
-		lines = {l['line_name'] : l['line_val'] for l in lines}
+		lines = obj['data']
+		if isinstance(lines, list):
+			lines = {l['line_name']: l['line_val'] for l in lines}
 
-	lines_get = lambda g: ([v for k, v in lines.items() if g in k] + [None])[0]
+		for f, pats in glossary['fields'].items():
+			if not any(pat in k for pat in pats for k in lines.keys()):
+				bad[f].update(lines)
+				continue
+			p[f] = sum(int(v)
+				   for pat in pats
+				   for k, v in lines.items()
+				   if pat in k)
 
-	station = {k : sum_or_none([(int(v) if v is not None else v) for v in map(lines_get, glossary['fields'][k]) ]) for k in glossary['fields']}
-	for k, v in station.items():
-		if v is None:
-			bad[k].update(lines)
+		p['vote'] = {letters(k): int(v)
+			     for k, v in lines.items()
+			     if letters(k).istitle() or 'партия' in k.lower()}
 
-	station['region_code'] = ([k for k, v in glossary['regions'].items() for vv in v if vv in region_name] + [None])[0]
-	if station['region_code'] is None:
-		bad['regions'].add(region_name)
+		if p['voters_voted_at_station'] >= 0:
+			p['voters_voted'] = (p['voters_voted_at_station'] +
+				             max(0, p.get('voters_voted_early', -1)) +
+				             max(0, p.get('voters_voted_outside_station', -1)))
 
-	station['election_name'] = election_name
-	station['region_name'] = glossary['regions'].get(station['region_code'], [region_name])[0]
-	station['precinct'] = int(uik_name)
-	station['tik_num']  = int(tik_num)
-	station['territory'] = tik_name.replace('Территориальная избирательная комиссия', 'ТИК').replace('города', 'г.').replace('района', 'р-на')
-	station['vote'] = {k_ : int(v) for k, v in lines.items() for k_ in [letters(k)] if k_.istitle()}
-	station['voters_voted_early'] = station.get('voters_voted_early', 0)
-	station['voters_voted_outside_station'] = station.get('voters_voted_outside_station', 0)
-	station['voters_voted'] = (station['voters_voted_at_station'] + station['voters_voted_early'] + station['voters_voted_outside_station']) if station.get('voters_voted_at_station') is not None else None
-	station['foreign'] = station['region_code'] == 'RU-FRN'
 
-	p['loc'][-1] = uik_name + ' ' + p['loc'][-1]
-	station['turnouts'] = {k.replace('.', ':') : v for k, v in ik_turnouts.get(''.join(p['loc']), dict(turnouts = {}))['turnouts'].items()} or None
+# Locations
 
-	station.update(locations.pop((station['region_code'], station['precinct']), {}))
+if args.locations is not None:
+	for obj in jsons(argopen(args.locations)):
+		region_code = regioncode(obj['region'])
+		uik_num = precinctnumber(obj['text'])
+		p = precincts[region_code, uik_num]
+		p['region_code'] = region_code
+		if region_code:
+			p['region_name'] = glossary['regions'][region_code][0]
+			p['foreign'] = 1 if region_code.endswith('-FRN') else 0
+		else:
+			p['region_name'] = obj['region']
 
-	station['electoral_id'] = election_data.electoral_id(region_code = station['region_code'], date = args.date, election_name = args.election_name, station = station['precinct'], territory = station['territory'])
+		p['precinct'] = uik_num
+		p['commission_address'] = obj['address'].strip().replace('\t', ' ')
+		p['commission_lat'] = format(coord(obj['coords']['lat']), '.6f')
+		p['commission_lon'] = format(coord(obj['coords']['lon']), '.6f')
+		p['station_address'] = obj['voteaddress'].strip().replace('\t', ' ')
+		p['station_lat'] = format(coord(obj['votecoords']['lat']), '.6f')
+		p['station_lon'] = format(coord(obj['votecoords']['lon']), '.6f')
 
-	stations.append(station)
 
-for k in locations.keys():
-	bad['precincts'].add(k)
+# Postprocessing
+
+num_candidates = max(len(p.get('vote', {})) for p in precincts.values())
+for p in precincts.values():
+	vote = p.pop('vote', {})
+	for i, (k, v) in enumerate(vote.items()):
+		p['candidate{}_name'.format(i)] = k
+		p['candidate{}_ballots'.format(i)] = v
+	for i in range(len(vote), num_candidates):
+		p['candidate{}_name'.format(i)] = ''
+		p['candidate{}_ballots'.format(i)] = -1
 
 if args.bad_json is not None:
 	with open(args.bad_json, 'w', newline='\r\n') as file:
-		json.dump({k : list(sorted(v)) for k, v in bad.items()}, file, ensure_ascii=False, indent=2, sort_keys=True)
+		json.dump({k: sorted(v) for k, v in bad.items()}, file, ensure_ascii=False, indent=2, sort_keys=True)
 
-if args.json is not None:
-	with open(args.json, 'w', newline='\r\n') as file:
-		json.dump(stations, file, ensure_ascii=False, indent=2, sort_keys=True)
+fields  = list(empty.keys())
+fields += ['candidate{}_name'.format(i) for i in range(num_candidates)]
+fields += ['candidate{}_ballots'.format(i) for i in range(num_candidates)]
 
-vote_kv = {'ballots_' + k.lower().replace(' ', '_') : k for s in stations for k in s['vote']}
-
-
-num_candidates = max(len(s['vote']) for s in stations)
-for s in stations:
-	for c, (k, v) in enumerate(s['vote'].items()):
-		s[f'candidate{c}_name'] = k
-		s[f'candidate{c}_ballots'] = v
-	for c in range(len(s['vote']), num_candidates):
-		s[f'candidate{c}_name'] = ''
-		s[f'candidates{c}_ballots'] = 0
-
-
-for s in stations:
-	for k, v in glossary['turnouts'].items():
-		s[k] = (s['turnouts'] or {}).get(v, np.nan)
-	for k, v in vote_kv.items():
-		s[k] = (s['vote'] or {}).get(v, 0)
-field_string_type = lambda field: 'U' + str(max(len(s.get(field, '')) for s in stations))
-candidate_fields = [(f'candidate{c}_name', field_string_type(f'candidate{c}_name')) for c in range(num_candidates)] + [(f'candidate{c}_ballots', int) for c in range(num_candidates)]
-dtype = [(field, field_string_type(field)) for field in ['region_code', 'region_name', 'election_name', 'territory', 'commission_address', 'station_address', 'electoral_id']] + [('tik_num', int), ('precinct', int), ('foreign', bool), ('commission_lat', float), ('commission_lon', float), ('station_lat', float), ('station_lon', float), ('voters_registered', int), ('voters_voted', int), ('voters_voted_at_station', int), ('voters_voted_outside_station', int), ('voters_voted_early', int), ('ballots_valid', int), ('ballots_invalid', int)] + [(k, np.float32) for k in sorted(glossary['turnouts'])] + candidate_fields # [(k, int) for k in sorted(vote_kv)]
-
-if args.tsv is not None:
-	arr = np.array([tuple(s.get(n, "" if isinstance(t, str) else np.nan) for n, t in dtype) for s in stations], dtype=dtype)
-	np.savetxt(args.tsv, arr, comments='', header='\t'.join(arr.dtype.names), fmt='\t'.join({int: '%d', bool: '%d', float: '%.6f', np.float32: '%.4f'}.get(t, '%s') for n, t in dtype), delimiter='\t', encoding='utf-8')
+with open(args.output, 'w', newline='\r\n') as out:
+	wr = csv.DictWriter(out, fieldnames=fields, dialect=None, delimiter='\t', lineterminator='\n', quotechar=None, quoting=csv.QUOTE_NONE)
+	wr.writeheader()
+	for p in precincts.values():
+		wr.writerow(p)

@@ -8,8 +8,8 @@ import numpy as np
 import numpy.lib.recfunctions # http://pyopengl.sourceforge.net/pydoc/numpy.lib.recfunctions.html
 
 RU_LEADER = ['Путин', 'Медведев']
-RU_TRANSLIT =  ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя',
-				'ABVGDEEZZIJKLMNOPRSTUFHCCSSYYYEUAabvgdeezzijklmnoprstufhccssyyyeua')
+RU_TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя',
+               'ABVGDEEZZIJKLMNOPRSTUFHCCSSYYYEUAabvgdeezzijklmnoprstufhccssyyyeua')
 
 def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False, leader = RU_LEADER):
 	if isinstance(fileorurl, str):
@@ -21,7 +21,7 @@ def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False, lea
 	it = iter(rd)
 	fieldnames = next(it)
 	first = next(it)
-	dtype = [(name, '<i4' if value.isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else f'<U{max_string_size}') for name, value in zip(fieldnames, first)]
+	dtype = [(name, '<i4' if value.lstrip('-').isdigit() else '<f8' if value.replace('.', '', 1).isdigit() or value == 'nan' else f'<U{max_string_size}') for name, value in zip(fieldnames, first)]
 	col2idx = {n : i for i, (n, t) in enumerate(dtype)}
 	dtype += [(n, t) for n, t in [('ballots_valid_invalid', '<i4'), ('turnout', '<f4')] if n not in fieldnames]
 	T = np.empty((2048,), dtype=dtype)
@@ -30,7 +30,7 @@ def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False, lea
 			T.resize(2 * len(T))
 		t = tuple(int(v) if dtype[j][1][1] == 'i' else float(v) if dtype[j][1][1] == 'f' else v for j, v in enumerate(row))
 		ballots_valid_invalid = t[col2idx['ballots_valid']] + t[col2idx['ballots_invalid']]
-		turnout = (t[col2idx['voters_voted_at_station']] + t[col2idx['voters_voted_early']] + t[col2idx['voters_voted_outside_station']]) / t[col2idx['voters_registered']]
+		turnout = (t[col2idx['voters_voted_at_station']] + t[col2idx['voters_voted_early']] + t[col2idx['voters_voted_outside_station']]) / np.float64(t[col2idx['voters_registered']])
 		T[i] = (t + (ballots_valid_invalid, turnout))[:len(dtype)] 
 
 	append(first, 0)

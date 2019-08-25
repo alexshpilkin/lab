@@ -55,12 +55,12 @@ if __name__ == '__main__':
 	matplotlib.use('Agg')
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument('data', nargs='?', metavar='DATA', default='https://github.com/schitaytesami/lab/releases/download/data-v2/2018.tsv.gz', help='Data file to use, in TSV, NPY or NPZ format')
-	parser.add_argument('--dpi', default=None, type=int, help='Resolution of the output image')
-	parser.add_argument('-o', '--output', default='historytraj', help='Output directory')
+	parser.add_argument('data', nargs='?', metavar='DATA', default='https://github.com/schitaytesami/lab/releases/download/data-v2/2018.tsv.gz', help='Data file to use')
+	parser.add_argument('--dpi', default=None, type=int, help='Resolution of the output images')
+	parser.add_argument('-o', '--output', default='bubbles', help='Output directory')
 	args = parser.parse_args()
-	
-	os.makedirs(args.output, exist_ok = True)
+
+	os.makedirs(args.output, exist_ok=True)
 
 	D = election_data.load(args.data)
 	R = election_data.regions(D)
@@ -68,7 +68,7 @@ if __name__ == '__main__':
 	for region_code in R:
 		print(region_code)
 		plt.figure(figsize=(12, 8))
-		plot(election_data.filter(D, region_code=region_code), title = R[region_code])
+		plot(election_data.filter(D, region_code=region_code), title=R[region_code])
 		plt.savefig(os.path.join(args.output, region_code + '.png'),
 		            bbox_inches='tight', dpi=args.dpi)
 		plt.close()
