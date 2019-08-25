@@ -11,7 +11,7 @@ RU_LEADER = ['Путин', 'Медведев']
 RU_TRANSLIT = ('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя',
                'ABVGDEEZZIJKLMNOPRSTUFHCCSSYYYEUAabvgdeezzijklmnoprstufhccssyyyeua')
 
-def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False, leader = RU_LEADER):
+def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False):
 	if isinstance(fileorurl, str):
 		file = urllib.request.urlopen(fileorurl) if fileorurl.startswith('http') else open(fileorurl, 'rb')
 		fileorurl = gzip.open(file, 'rt') if fileorurl.endswith('.gz') else io.TextIOWrapper(file)
@@ -37,19 +37,22 @@ def load(fileorurl, max_string_size = 64, encoding = 'utf-8', latin = False, lea
 	for i, row in enumerate(it, start=1):
 		append(row, i)
 	T.resize(i)
-	return promote_candidates_to_columns(T.view(np.recarray), leader = leader, latin = latin)
+	return promote_candidates_to_columns(T.view(np.recarray), latin = latin)
 
 def latinize(s, safe = False, T = {ord(a): ord(b) for a, b in zip(*RU_TRANSLIT)}, S = dict([(' ', '_')] + [(ord(c), None) for c in ''',."'()'''])):
 	#s = unicodedata.normalize('NFD', translit(s)).encode('ascii', 'ignore').decode('ascii')
 	return s.translate(T) if not safe else s.translate(T).translate(S).lower()
 
-def promote_candidates_to_columns(D, leader = [], latin = False):
-	latinize_ = lambda s, lower = False, **kwargs: ((s.lower() if lower else s) if latin else latinize((s.lower() if lower else s), safe = True)).replace(' ', '_')
-	name_map = {name.replace('_name', '_ballots') : 'candidate_' + latinize_(D[name][0]) for name in D.dtype.names if name.endswith('_name') and len(np.unique(D[name])) == 1}
-	leader_map = [D[n.replace('_name', '_ballots')] for n in D.dtype.names if n.endswith('_name') and any(latinize_(l, lower = True) in latinize_(D[n][0], lower = True) for l in leader)]
+def latinize_(s, lower = False, latin = False, **kwargs):
+	return ((s.lower() if lower else s) if latin else latinize((s.lower() if lower else s), safe = True)).replace(' ', '_')
+
+def promote_candidates_to_columns(D, latin = False):
+	name_map = {name.replace('_name', '_ballots') : 'candidate_' + latinize_(D[name][0], latin = latin) for name in D.dtype.names if name.endswith('_name') and len(np.unique(D[name])) == 1}
 	D = np.lib.recfunctions.rename_fields(D, name_map)
-	D = np.lib.recfunctions.append_fields(D, ['leader'], leader_map, asrecarray = True)
 	return D
+
+def find_leader_score(D, leader_names, latin = False):
+	return [D[n.replace('_name', '_ballots')] for n in D.dtype.names if n.endswith('_name') and any(latinize_(l, lower = True, latin = latin) in latinize_(D[n][0], lower = True) for l in leader_names)][0]
 
 def filter(D, region_code=None, region_name=None, voters_registered_min=None, voters_voted_le_voters_registered=False, foreign=None, ballots_valid_invalid_min=None):
 	idx = np.full(len(D), True)
