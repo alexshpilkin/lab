@@ -2,6 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec 
 
 import election_data
 
@@ -31,7 +32,7 @@ def histogram(D, leader_names, *, binwidth, weights='voters', minsize=0, noise=F
 	                   bins=edges, weights=wval)[0]
 	return wlbl, centers, h
 
-def plot(D, leader_names, title, binwidth=0.25, aspect = 3, spacing = 0.2, **kwargs):
+def plot(D, leader_names, title, binwidth=0.25, aspect = 3, spacing = 0.5, **kwargs):
 	wlbl, centers, h = histogram(D, leader_names, binwidth=binwidth, **kwargs)
 	ht = np.sum(h, axis=1)
 	hr = np.sum(h, axis=0)
@@ -39,32 +40,33 @@ def plot(D, leader_names, title, binwidth=0.25, aspect = 3, spacing = 0.2, **kwa
 	ylog = int(np.ceil(np.log10(min(np.max(ht), np.max(hr))))) - 1
 
 	plt.suptitle(title, size=20, y=0.925, va='baseline')
+	matplotlib.gridspec.GridSpec(4, 4)
 
-	axs = plt.gcf().subplots(2, 2, sharex='col', sharey='row', gridspec_kw=dict(width_ratios=[aspect, 1], wspace=spacing, height_ratios=[1, aspect], hspace=spacing))
-	ax = axs[0,1]
-	ax.text(0.5, 0.5, f'$\\times 10^{{{ylog}}}$ {wlbl}\nin ${binwidth}\\,\\%$ bin', wrap=True, ha='center', va='center', transform=ax.transAxes)	# the \n is a hack to force good wrapping
-	ax.set_frame_on(False)
-	ax.axis('off')
+	plt.subplot2grid((4, 4), (0, 0), colspan = 3)
+	plt.plot(centers, ht / (10 ** ylog), linewidth=1)
+	plt.xticks(np.arange(0, 101, 10))
+	plt.ylim(bottom = 0)
+	plt.xlim(0, 100)
+	plt.xlabel('Turnout %')
+	plt.tick_params(right=True, top=False, left=False, bottom=True, labelright=True, labeltop=False, labelleft=False, labelbottom=True)
 
-	ax = axs[0,0]
-	# weight vs turnout
-	ax.plot(centers, ht / (10 ** ylog), linewidth=1)
-	ax.set_xticks(np.arange(0, 101, 10))
-	ax.set_ylim(bottom=0)
-	ax.set_xlabel('Turnout %')
-	ax.tick_params(right=True, top=False, left=False, bottom=True, labelright=True, labeltop=False, labelleft=False, labelbottom=True)
+	plt.subplot2grid((4, 4), (1, 0), colspan = 3, rowspan = 3)
+	plt.imshow(h.T, vmin=0, vmax=np.quantile(h[h>0], 0.95), origin='lower', extent=[0,100,0,100], interpolation='none')
+	plt.axis('off')
 
-	ax = axs[1,1]
-	# weight vs leader result
-	ax.plot(hr / (10 ** ylog), centers, linewidth=1)
-	ax.set_xlim(left=0)
-	ax.set_yticks(np.arange(0, 101, 10))
-	ax.set_ylabel('Leader’s result %')
-	ax.tick_params(right=False, top=True, left=True, bottom=False, labelright=False, labeltop=True, labelleft=True, labelbottom=False)
+	plt.subplot2grid((4, 4), (1, 3), rowspan = 3)
+	plt.plot(hr / (10 ** ylog), centers, linewidth=1)
+	plt.xlim(left = 0)
+	plt.ylim(0, 100)
+	plt.yticks(np.arange(0, 101, 10))
+	plt.ylabel('Leader’s result %')
+	plt.tick_params(right=False, top=True, left=True, bottom=False, labelright=False, labeltop=True, labelleft=True, labelbottom=False)
 
-	ax = axs[1,0]
-	ax.imshow(h.T, vmin=0, vmax=np.quantile(h[h>0], 0.95), origin='lower', extent=[0,100,0,100], interpolation='none')
-	ax.axis('off')
+	plt.subplot2grid((4, 4), (0, 3), frameon=False)
+	plt.text(0.5, 0.5, f'$\\times 10^{{{ylog}}}$ {wlbl}\nin ${binwidth}\\,\\%$ bin', wrap=True, ha='center', va='center')
+	plt.axis('off')
+
+	plt.subplots_adjust(hspace = spacing, wspace = spacing)
 
 if __name__ == '__main__':
 	import os
