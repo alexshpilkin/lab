@@ -32,7 +32,7 @@ def histogram(D, leader_names, *, binwidth, weights='voters', minsize=0, noise=F
 	                   bins=edges, weights=wval)[0]
 	return wlbl, centers, h
 
-def plot(D, leader_names, title, binwidth=0.25, aspect = 3, spacing = 0.5, **kwargs):
+def plot(D, leader_names, title, binwidth=0.25, spacing=0.5, **kwargs):
 	wlbl, centers, h = histogram(D, leader_names, binwidth=binwidth, **kwargs)
 	ht = np.sum(h, axis=1)
 	hr = np.sum(h, axis=0)
@@ -40,7 +40,6 @@ def plot(D, leader_names, title, binwidth=0.25, aspect = 3, spacing = 0.5, **kwa
 	ylog = int(np.ceil(np.log10(min(np.max(ht), np.max(hr))))) - 1
 
 	plt.suptitle(title, size=20, y=0.925, va='baseline')
-	matplotlib.gridspec.GridSpec(4, 4)
 
 	plt.subplot2grid((4, 4), (0, 0), colspan = 3)
 	plt.plot(centers, ht / (10 ** ylog), linewidth=1)
